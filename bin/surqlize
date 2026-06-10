@@ -1,0 +1,73 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use Surqlize\Generator\FieldClassGenerator;
+use Surqlize\Generator\FieldGenerationConfig;
+use Surqlize\Generator\FieldTypingTraitGenerator;
+use Surqlize\Benchmark\MemoryFootprintRunner;
+
+require __DIR__ . '/../vendor/autoload.php';
+
+$command = $argv[1] ?? null;
+
+if ($command === 'generate:fields') {
+    $configPath = $argv[2] ?? getcwd() . DIRECTORY_SEPARATOR . 'surqlize.config.php';
+
+    if (! is_file($configPath)) {
+        fwrite(STDERR, sprintf("Config file not found: %s\n", $configPath));
+        exit(1);
+    }
+
+    $config = require $configPath;
+
+    if (! is_array($config)) {
+        fwrite(STDERR, "Config file must return an array.\n");
+        exit(1);
+    }
+
+    $generationConfig = FieldGenerationConfig::fromArray($config);
+
+    (new FieldClassGenerator())->write($generationConfig);
+    (new FieldTypingTraitGenerator())->write($generationConfig);
+
+    fwrite(STDOUT, "Generated Surqlize field adapters.\n");
+    exit(0);
+}
+
+if ($command === 'memory:footprint') {
+    $iterations = 1_000;
+    $output = null;
+
+    foreach (array_slice($argv, 2) as $argument) {
+        if (str_starts_with($argument, '--iterations=')) {
+            $iterations = (int) substr($argument, strlen('--iterations='));
+            continue;
+        }
+
+        if (str_starts_with($argument, '--output=')) {
+            $output = substr($argument, strlen('--output='));
+            continue;
+        }
+
+        fwrite(STDERR, sprintf("Unknown memory:footprint option: %s\n", $argument));
+        exit(1);
+    }
+
+    $json = (new MemoryFootprintRunner($iterations))->run()->toJson();
+
+    if ($output !== null && $output !== '') {
+        file_put_contents($output, $json);
+        fwrite(STDOUT, sprintf("Memory footprint report written to %s\n", $output));
+        exit(0);
+    }
+
+    fwrite(STDOUT, $json);
+    exit(0);
+}
+
+fwrite(STDERR, "Usage:\n");
+fwrite(STDERR, "  surqlize generate:fields [config-path]\n");
+fwrite(STDERR, "  surqlize memory:footprint [--iterations=1000] [--output=path]\n");
+exit(1);
