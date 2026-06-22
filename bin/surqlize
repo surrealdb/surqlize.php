@@ -7,6 +7,8 @@ use Surqlize\Generator\FieldClassGenerator;
 use Surqlize\Generator\FieldGenerationConfig;
 use Surqlize\Generator\FieldTypingTraitGenerator;
 use Surqlize\Benchmark\MemoryFootprintRunner;
+use Surqlize\Model\SchemaManager;
+use SurrealDB\SDK\Contracts\QueryExecutor;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -67,7 +69,42 @@ if ($command === 'memory:footprint') {
     exit(0);
 }
 
+if ($command === 'schema:apply') {
+    $configPath = $argv[2] ?? getcwd() . DIRECTORY_SEPARATOR . 'surqlize.config.php';
+
+    if (! is_file($configPath)) {
+        fwrite(STDERR, sprintf("Config file not found: %s\n", $configPath));
+        exit(1);
+    }
+
+    $config = require $configPath;
+
+    if (! is_array($config)) {
+        fwrite(STDERR, "Config file must return an array.\n");
+        exit(1);
+    }
+
+    $models = $config['models'] ?? null;
+
+    if (! is_array($models) || ! array_is_list($models)) {
+        fwrite(STDERR, "Config key \"models\" must be a list of model classes.\n");
+        exit(1);
+    }
+
+    $executor = $config['executor'] ?? null;
+
+    if (! $executor instanceof QueryExecutor) {
+        fwrite(STDERR, "Config key \"executor\" must be a QueryExecutor for schema:apply.\n");
+        exit(1);
+    }
+
+    (new SchemaManager())->apply($models, $executor);
+    fwrite(STDOUT, "Applied Surqlize schema definitions.\n");
+    exit(0);
+}
+
 fwrite(STDERR, "Usage:\n");
 fwrite(STDERR, "  surqlize generate:fields [config-path]\n");
 fwrite(STDERR, "  surqlize memory:footprint [--iterations=1000] [--output=path]\n");
+fwrite(STDERR, "  surqlize schema:apply [config-path]\n");
 exit(1);

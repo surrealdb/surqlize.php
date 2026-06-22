@@ -28,6 +28,10 @@ final class ValueFormatter
             return $value->escape();
         }
 
+        if ($value instanceof \DateTimeInterface) {
+            return "d'" . $value->format('Y-m-d\TH:i:s.uP') . "'";
+        }
+
         if (is_array($value)) {
             return Value::toSurql($value);
         }
@@ -47,7 +51,7 @@ final class ValueFormatter
     {
         if ($operator instanceof Operator) {
             return match ($operator) {
-                Operator::INCLUDES, Operator::CONTAINS, Operator::LIKE => "'",
+                Operator::INCLUDES, Operator::CONTAINS, Operator::CONTAINS_ALL, Operator::CONTAINS_ANY, Operator::CONTAINS_NONE, Operator::LIKE, Operator::MATCHES => "'",
                 default => '"',
             };
         }
@@ -56,7 +60,7 @@ final class ValueFormatter
             $normalized = strtoupper($operator);
 
             return match ($normalized) {
-                'INCLUDES', 'CONTAINS', 'LIKE' => "'",
+                'INCLUDES', 'CONTAINS', 'CONTAINSALL', 'CONTAINSANY', 'CONTAINSNONE', 'LIKE', '@@' => "'",
                 default => '"',
             };
         }

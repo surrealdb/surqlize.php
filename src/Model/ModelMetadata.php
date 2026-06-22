@@ -80,6 +80,15 @@ final class ModelMetadata
 			$type = $property->getType();
 			$propertyTypes[$name] = $type instanceof \ReflectionNamedType ? $type->getName() : null;
 
+            if ($type instanceof \ReflectionNamedType && ! $type->isBuiltin()) {
+                $typeName = $type->getName();
+
+                if (is_subclass_of($typeName, Model::class)) {
+                    /** @var class-string<Model> $typeName */
+                    $casts[$name] = $typeName;
+                }
+            }
+
             foreach ($property->getAttributes(Id::class) as $attribute) {
                 if ($idProperty !== null) {
                     throw new \InvalidArgumentException(

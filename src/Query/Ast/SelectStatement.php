@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Surqlize\Query\Ast;
 
+use SurrealDB\SDK\Query\BoundQuery;
 use Surqlize\Query\Compiler\Identifier;
 
 final class SelectStatement implements Node
@@ -15,6 +16,8 @@ final class SelectStatement implements Node
         private ?FetchClause $fetch = null,
         private ?string $valueField = null,
         private ?OrderClause $order = null,
+        private ?int $limit = null,
+        private ?int $start = null,
     ) {}
 
     public function fields(): FieldSelection
@@ -45,6 +48,16 @@ final class SelectStatement implements Node
     public function order(): ?OrderClause
     {
         return $this->order;
+    }
+
+    public function limit(): ?int
+    {
+        return $this->limit;
+    }
+
+    public function start(): ?int
+    {
+        return $this->start;
     }
 
     public function isSelectValue(): bool
@@ -102,6 +115,30 @@ final class SelectStatement implements Node
         return $clone;
     }
 
+    public function withLimit(?int $limit): self
+    {
+        if ($limit !== null && $limit < 1) {
+            throw new \InvalidArgumentException('SELECT LIMIT must be greater than zero.');
+        }
+
+        $clone = clone $this;
+        $clone->limit = $limit;
+
+        return $clone;
+    }
+
+    public function withStart(?int $start): self
+    {
+        if ($start !== null && $start < 0) {
+            throw new \InvalidArgumentException('SELECT START must be zero or greater.');
+        }
+
+        $clone = clone $this;
+        $clone->start = $start;
+
+        return $clone;
+    }
+
     public function compile(): string
     {
         if ($this->valueField !== null) {
@@ -128,6 +165,14 @@ final class SelectStatement implements Node
             }
         }
 
+        if ($this->limit !== null) {
+            $sql .= ' LIMIT ' . $this->limit;
+        }
+
+        if ($this->start !== null) {
+            $sql .= ' START ' . $this->start;
+        }
+
         if ($this->fetch !== null) {
             $compiledFetch = $this->fetch->compile();
             if ($compiledFetch !== '') {
@@ -136,5 +181,51 @@ final class SelectStatement implements Node
         }
 
         return $sql;
+    }
+
+    public function toBoundQuery(): BoundQuery
+    {
+        $query = new BoundQuery();
+
+        if ($this->valueField !== null) {
+            $query->append('SELECT VALUE ' . Identifier::field($this->valueField, 'SELECT VALUE field'));
+        } else {
+            $query->append('SELECT ' . $this->fields->compileBound($query));
+        }
+
+        if ($this->fromTable !== null && $this->fromTable !== '') {
+            $query->append(' FROM ' . Identifier::table($this->fromTable, 'FROM table'));
+        }
+
+        if ($this->where !== null) {
+            $compiledWhere = $this->where->compileBound($query);
+            if ($compiledWhere !== '') {
+                $query->append(' ' . $compiledWhere);
+            }
+        }
+
+        if ($this->order !== null) {
+            $compiledOrder = $this->order->compile();
+            if ($compiledOrder !== '') {
+                $query->append(' ' . $compiledOrder);
+            }
+        }
+
+        if ($this->limit !== null) {
+            $query->append(' LIMIT ' . $this->limit);
+        }
+
+        if ($this->start !== null) {
+            $query->append(' START ' . $this->start);
+        }
+
+        if ($this->fetch !== null) {
+            $compiledFetch = $this->fetch->compile();
+            if ($compiledFetch !== '') {
+                $query->append(' ' . $compiledFetch);
+            }
+        }
+
+        return $query;
     }
 }

@@ -6,9 +6,9 @@ namespace Surqlize\Tests\Unit\Generator;
 
 use Surqlize\Generator\FieldClassGenerator;
 use Surqlize\Generator\FieldTypingTraitGenerator;
-use Surqlize\Query\Fields\Field;
 use Surqlize\Query\Fields\NumericField;
 use Surqlize\Query\Fields\RecordIdField;
+use Surqlize\Query\Fields\RecordLinkField;
 use Surqlize\Query\Fields\StringField;
 use Surqlize\Tests\Fixtures\Address;
 use Surqlize\Tests\Fixtures\HasAddress;
@@ -25,7 +25,7 @@ final class FieldClassGeneratorTest extends TestCase
         $this->assertStringContainsString('public readonly RecordIdField $id;', $source);
         $this->assertStringContainsString('public readonly StringField $name;', $source);
         $this->assertStringContainsString('public readonly NumericField $age;', $source);
-        $this->assertStringContainsString('public readonly Field $address;', $source);
+        $this->assertStringContainsString('public readonly RecordLinkField $address;', $source);
         $this->assertStringContainsString('$this->id = new RecordIdField(\'id\', table: \'user\');', $source);
     }
 
@@ -42,8 +42,8 @@ final class FieldClassGeneratorTest extends TestCase
         $source = (new FieldClassGenerator())->generate(HasAddress::class, 'Generated\\Fields');
 
         $this->assertStringContainsString('final class HasAddressFields extends FieldSet', $source);
-        $this->assertStringContainsString('public readonly Field $in;', $source);
-        $this->assertStringContainsString('public readonly Field $out;', $source);
+        $this->assertStringContainsString('public readonly RecordLinkField $in;', $source);
+        $this->assertStringContainsString('public readonly RecordLinkField $out;', $source);
         $this->assertStringNotContainsString('new RecordIdField(\'in\'', $source);
         $this->assertStringNotContainsString('new RecordIdField(\'out\'', $source);
     }
@@ -55,7 +55,7 @@ final class FieldClassGeneratorTest extends TestCase
         $this->assertInstanceOf(RecordIdField::class, $userFields->id);
         $this->assertInstanceOf(StringField::class, $userFields->name);
         $this->assertInstanceOf(NumericField::class, $userFields->age);
-        $this->assertInstanceOf(Field::class, $userFields->address);
+        $this->assertInstanceOf(RecordLinkField::class, $userFields->address);
     }
 
     public function test_generates_field_typing_trait_for_static_analysis(): void

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Surqlize\Query\Ast;
 
+use SurrealDB\SDK\Query\BoundQuery;
+
 final class WhereClause implements Node
 {
     /** @var list<WhereCondition> */
@@ -37,6 +39,15 @@ final class WhereClause implements Node
         return 'WHERE ' . $this->compileConditions();
     }
 
+    public function compileBound(BoundQuery $query): string
+    {
+        if ($this->conditions === []) {
+            return '';
+        }
+
+        return 'WHERE ' . $this->compileConditionsBound($query);
+    }
+
     /** For graph bracket syntax: `[WHERE field op value]`. */
     public function compileBracketed(): string
     {
@@ -47,12 +58,32 @@ final class WhereClause implements Node
         return '[WHERE ' . $this->compileConditions() . ']';
     }
 
+    public function compileBracketedBound(BoundQuery $query): string
+    {
+        if ($this->conditions === []) {
+            return '';
+        }
+
+        return '[WHERE ' . $this->compileConditionsBound($query) . ']';
+    }
+
     private function compileConditions(): string
     {
 		$compiled = [];
 
 		foreach ($this->conditions as $condition) {
 			$compiled[] = $condition->compile();
+		}
+
+		return implode(' AND ', $compiled);
+    }
+
+    private function compileConditionsBound(BoundQuery $query): string
+    {
+		$compiled = [];
+
+		foreach ($this->conditions as $condition) {
+			$compiled[] = $condition->compileBound($query);
 		}
 
 		return implode(' AND ', $compiled);

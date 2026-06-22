@@ -34,4 +34,20 @@ final class ConnectionManager
     {
         self::$executor = null;
     }
+
+    public static function transaction(\Closure $callback, ?QueryExecutor $executor = null): mixed
+    {
+        $transaction = new Transaction($executor ?? self::get());
+
+        try {
+            $result = $callback($transaction);
+            $transaction->commit();
+
+            return $result;
+        } catch (\Throwable $exception) {
+            $transaction->rollback();
+
+            throw $exception;
+        }
+    }
 }

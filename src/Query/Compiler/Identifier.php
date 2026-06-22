@@ -11,10 +11,10 @@ final class Identifier
     private const SEGMENT = '[A-Za-z_][A-Za-z0-9_]*';
 
     /** @var list<string> */
-    private const SYMBOL_OPERATORS = ['=', '!=', '>', '>=', '<', '<='];
+    private const SYMBOL_OPERATORS = ['=', '!=', '>', '>=', '<', '<=', '@@'];
 
     /** @var list<string> */
-    private const WORD_OPERATORS = ['INCLUDES', 'CONTAINS', 'LIKE'];
+    private const WORD_OPERATORS = ['INCLUDES', 'CONTAINS', 'CONTAINSALL', 'CONTAINSANY', 'CONTAINSNONE', 'INSIDE', 'OUTSIDE', 'INTERSECTS', 'LIKE'];
 
     public static function table(string $identifier, string $context = 'Table name'): string
     {

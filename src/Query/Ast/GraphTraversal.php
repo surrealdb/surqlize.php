@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Surqlize\Query\Ast;
 
+use SurrealDB\SDK\Query\BoundQuery;
 use Surqlize\Query\Compiler\Identifier;
 
 /**
@@ -34,6 +35,26 @@ class GraphTraversal implements Node
 
         if ($this->next !== null) {
             $sql .= $this->next->compile();
+        }
+
+        if ($this->alias !== null) {
+            $sql .= ' AS ' . Identifier::alias($this->alias, 'graph alias');
+        }
+
+        return $sql;
+    }
+
+    public function compileBound(BoundQuery $query): string
+    {
+        $sql = $this->direction->arrow() . Identifier::table($this->segment, 'graph traversal segment');
+
+        if ($this->where !== []) {
+            $clause = new WhereClause($this->where);
+            $sql .= $clause->compileBracketedBound($query);
+        }
+
+        if ($this->next !== null) {
+            $sql .= $this->next->compileBound($query);
         }
 
         if ($this->alias !== null) {

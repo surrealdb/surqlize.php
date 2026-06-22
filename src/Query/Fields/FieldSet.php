@@ -62,10 +62,20 @@ class FieldSet
 
 		$type = $metadata?->propertyTypes[$name] ?? null;
 
+        if ($type !== null && is_a($type, \DateTimeInterface::class, true)) {
+            return new DateTimeField($name);
+        }
+
+        if ($type === \SurrealDB\SDK\Types\RecordId::class || ($type !== null && is_subclass_of($type, Model::class))) {
+            return new RecordLinkField($name);
+        }
+
         return match ($type) {
             'string' => new StringField($name),
             'int', 'float' => new NumericField($name),
             'bool' => new BooleanField($name),
+            'array' => new ArrayField($name),
+            'object' => new ObjectField($name),
             default => new Field($name),
         };
     }

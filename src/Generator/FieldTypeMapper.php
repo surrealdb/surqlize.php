@@ -6,11 +6,17 @@ namespace Surqlize\Generator;
 
 use ReflectionNamedType;
 use ReflectionProperty;
+use SurrealDB\SDK\Types\RecordId;
+use Surqlize\Model\Model;
 use Surqlize\Model\ModelMetadata;
+use Surqlize\Query\Fields\ArrayField;
 use Surqlize\Query\Fields\BooleanField;
+use Surqlize\Query\Fields\DateTimeField;
 use Surqlize\Query\Fields\Field;
+use Surqlize\Query\Fields\ObjectField;
 use Surqlize\Query\Fields\NumericField;
 use Surqlize\Query\Fields\RecordIdField;
+use Surqlize\Query\Fields\RecordLinkField;
 use Surqlize\Query\Fields\StringField;
 
 final class FieldTypeMapper
@@ -30,10 +36,22 @@ final class FieldTypeMapper
             return Field::class;
         }
 
-        return match ($type->getName()) {
+        $typeName = $type->getName();
+
+        if (is_a($typeName, \DateTimeInterface::class, true)) {
+            return DateTimeField::class;
+        }
+
+        if ($typeName === RecordId::class || is_subclass_of($typeName, Model::class)) {
+            return RecordLinkField::class;
+        }
+
+        return match ($typeName) {
             'string' => StringField::class,
             'int', 'float' => NumericField::class,
             'bool' => BooleanField::class,
+            'array' => ArrayField::class,
+            'object' => ObjectField::class,
             default => Field::class,
         };
     }

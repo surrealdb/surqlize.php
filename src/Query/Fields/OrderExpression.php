@@ -11,7 +11,13 @@ final readonly class OrderExpression
     public function __construct(
         private string $field,
         private OrderDirection $direction,
+        private bool $expression = false,
     ) {}
+
+    public static function expression(string $expression, OrderDirection $direction): self
+    {
+        return new self($expression, $direction, expression: true);
+    }
 
     public function field(): string
     {
@@ -25,6 +31,10 @@ final readonly class OrderExpression
 
     public function compile(): string
     {
-        return Identifier::field($this->field, 'ORDER BY field') . ' ' . $this->direction->value;
+        $field = $this->expression
+            ? $this->field
+            : Identifier::field($this->field, 'ORDER BY field');
+
+        return $field . ' ' . $this->direction->value;
     }
 }

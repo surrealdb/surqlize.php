@@ -23,7 +23,10 @@ use Surqlize\Query\Fields\TypedFieldResolver;
 use Surqlize\Query\Fields\TypedWhereResolver;
 use Surqlize\Query\Compiler\Identifier;
 use Surqlize\Query\Support\EdgeEndpointResolver;
+use Surqlize\Model\Hydrator;
+use Surqlize\Model\Model;
 use Surqlize\Model\ModelMetadata;
+use Surqlize\Model\ModelRegistry;
 use Surqlize\Support\ClassString;
 
 /**
@@ -320,6 +323,22 @@ final class ModelQuery implements CompilesQueries
     }
 
     /**
+     * @return self<TFields>
+     */
+    public function limit(int $limit): self
+    {
+        return $this->withAst($this->ast->withLimit($limit));
+    }
+
+    /**
+     * @return self<TFields>
+     */
+    public function start(int $offset): self
+    {
+        return $this->withAst($this->ast->withStart($offset));
+    }
+
+    /**
      * Omit FROM clause (graph SELECT contract in architecture.md).
      *
      * @return self<TFields>
@@ -348,6 +367,11 @@ final class ModelQuery implements CompilesQueries
         return self::compiler()->compileSelect($this->ast);
     }
 
+    public function toBoundQuery(): BoundQuery
+    {
+        return $this->ast->toBoundQuery();
+    }
+
     private static function compiler(): SurrealQlCompiler
     {
         return self::$compiler ??= new SurrealQlCompiler();
@@ -359,8 +383,8 @@ final class ModelQuery implements CompilesQueries
     public function collect(): array
     {
         $executor = $this->resolveExecutor();
-        $query = $this->compile();
-        $result = $executor->query(new BoundQuery($query));
+        $query = $this->toBoundQuery();
+        $result = $executor->query($query);
 
         if (! is_array($result)) {
             throw new \RuntimeException(
@@ -368,9 +392,13 @@ final class ModelQuery implements CompilesQueries
                     'Expected query executor to return a list of rows for model context "%s"; got %s while running: %s',
                     $this->modelClass !== '' ? $this->modelClass : 'table "' . $this->table() . '"',
                     get_debug_type($result),
-                    $query,
+                    $query->query,
                 ),
             );
+        }
+
+        if ($this->ast->isSelectValue()) {
+            return array_values($result);
         }
 
         foreach ($result as $index => $row) {
@@ -381,13 +409,42 @@ final class ModelQuery implements CompilesQueries
                         (string) $index,
                         $this->modelClass !== '' ? $this->modelClass : 'table "' . $this->table() . '"',
                         get_debug_type($row),
-                        $query,
+                        $query->query,
                     ),
                 );
             }
         }
 
         return array_values($result);
+    }
+
+    /**
+     * @return list<Model>
+     */
+    public function collectModels(): array
+    {
+        if ($this->ast->isSelectValue()) {
+            throw new \LogicException('Cannot hydrate models from a SELECT VALUE query.');
+        }
+
+        $modelClass = $this->hydrationClass();
+        $hydrator = new Hydrator();
+
+        return array_map(
+            static fn (array $row): Model => $hydrator->hydrate($modelClass, $row),
+            $this->collect(),
+        );
+    }
+
+    public function first(): mixed
+    {
+        $query = $this->limit(1);
+
+        if ($this->ast->isSelectValue()) {
+            return $query->collect()[0] ?? null;
+        }
+
+        return $query->collectModels()[0] ?? null;
     }
 
     /**
@@ -471,6 +528,28 @@ final class ModelQuery implements CompilesQueries
                 'No QueryExecutor bound for ModelQuery context "%s". Pass one via withExecutor() or configure ConnectionManager::set() during bootstrap.',
                 $this->modelClass !== '' ? $this->modelClass : 'table "' . $this->table() . '"',
             ),
+        );
+    }
+
+    /** @return class-string<Model> */
+    private function hydrationClass(): string
+    {
+        $table = $this->table();
+        $modelClass = ModelRegistry::resolve($table);
+
+        if ($modelClass !== null) {
+            return $modelClass;
+        }
+
+        if (is_subclass_of($this->modelClass, Model::class)) {
+            /** @var class-string<Model> $modelClass */
+            $modelClass = $this->modelClass;
+
+            return $modelClass;
+        }
+
+        throw new \LogicException(
+            sprintf('Cannot hydrate query results for table "%s"; no model is registered for that table.', $table),
         );
     }
 }
