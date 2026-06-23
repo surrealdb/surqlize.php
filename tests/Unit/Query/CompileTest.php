@@ -92,6 +92,23 @@ final class CompileTest extends TestCase
         );
     }
 
+    public function test_typed_order_by_accepts_field_return(): void
+    {
+        $this->assertSame(
+            'SELECT name FROM user ORDER BY name ASC',
+            User::select(fn ($user) => [$user->name])
+                ->orderBy(fn ($user) => $user->name)
+                ->compile(),
+        );
+
+        $this->assertSame(
+            'SELECT name FROM user ORDER BY name DESC',
+            User::select(fn ($user) => [$user->name])
+                ->orderBy(fn ($user) => $user->name, 'DESC')
+                ->compile(),
+        );
+    }
+
     public function test_edge_in_select_with_where(): void
     {
         self::requireApi(Model::class, Edge::class);

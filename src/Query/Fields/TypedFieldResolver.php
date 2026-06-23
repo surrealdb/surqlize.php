@@ -110,28 +110,38 @@ final class TypedFieldResolver
     /**
      * @return list<OrderExpression>
      */
-    public static function resolveOrderFor(FieldSet $fields, \Closure $callback): array
+    public static function resolveOrderFor(
+        FieldSet $fields,
+        \Closure $callback,
+        OrderDirection $direction = OrderDirection::Ascending,
+    ): array
     {
         $result = $callback($fields);
         $items = is_array($result) ? $result : [$result];
-		$resolved = [];
+        $resolved = [];
 
-		foreach (array_values($items) as $index => $item) {
-			if (! $item instanceof OrderExpression) {
-				throw new \InvalidArgumentException(
-					sprintf(
-						'orderBy() typed callback for %s must return OrderExpression values; %s found at index %d.',
-						self::fieldSetContext($fields),
-						get_debug_type($item),
-						$index,
-					),
-				);
-			}
+        foreach (array_values($items) as $index => $item) {
+            if ($item instanceof Field) {
+                $resolved[] = new OrderExpression($item->path(), $direction);
 
-			$resolved[] = $item;
-		}
+                continue;
+            }
 
-		return $resolved;
+            if (! $item instanceof OrderExpression) {
+                throw new \InvalidArgumentException(
+                    sprintf(
+                        'orderBy() typed callback for %s must return Field or OrderExpression values; %s found at index %d.',
+                        self::fieldSetContext($fields),
+                        get_debug_type($item),
+                        $index,
+                    ),
+                );
+            }
+
+            $resolved[] = $item;
+        }
+
+        return $resolved;
     }
 
     /**

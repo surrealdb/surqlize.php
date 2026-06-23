@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Surqlize\Query;
 
+use Closure;
+use LogicException;
+use Surqlize\Query\Fields\Field;
 use SurrealDB\SDK\Contracts\QueryExecutor;
 use SurrealDB\SDK\Query\BoundQuery;
 use Surqlize\Query\Ast\FetchClause;
@@ -36,7 +39,7 @@ use Surqlize\Model\ModelRegistry;
 use Surqlize\Support\ClassString;
 
 /**
- * @template TFields of \Surqlize\Query\Fields\FieldSet
+ * @template TFields of FieldSet
  */
 final class ModelQuery implements CompilesQueries
 {
@@ -56,12 +59,12 @@ final class ModelQuery implements CompilesQueries
 
     /**
      * @param class-string $modelClass
-     * @param list<string|GraphTraversal|SelectProjection>|\Closure $fields
-     * @phpstan-param list<string|GraphTraversal|SelectProjection>|\Closure(FieldSet): (list<\Surqlize\Query\Fields\Field|string|GraphTraversal|SelectProjection>|\Surqlize\Query\Fields\Field|string|GraphTraversal|SelectProjection) $fields
+     * @param list<string|GraphTraversal|SelectProjection>|Closure $fields
+     * @phpstan-param list<string|GraphTraversal|SelectProjection>|Closure(FieldSet): (list<Field|string|GraphTraversal|SelectProjection>|Field|string|GraphTraversal|SelectProjection) $fields
      *
      * @return self<FieldSet>
      */
-    public static function for(string $modelClass, array|\Closure $fields): self
+    public static function for(string $modelClass, array|Closure $fields): self
     {
         $modelClass = ClassString::model($modelClass);
 
@@ -72,15 +75,15 @@ final class ModelQuery implements CompilesQueries
      * @template T of FieldSet
      * @param class-string $modelClass
      * @param T $fieldSet
-     * @param list<string|GraphTraversal|SelectProjection>|\Closure $fields
-     * @phpstan-param list<string|GraphTraversal|SelectProjection>|\Closure(T): (list<\Surqlize\Query\Fields\Field|string|GraphTraversal|SelectProjection>|\Surqlize\Query\Fields\Field|string|GraphTraversal|SelectProjection) $fields
+     * @param list<string|GraphTraversal|SelectProjection>|Closure $fields
+     * @phpstan-param list<string|GraphTraversal|SelectProjection>|Closure(T): (list<Field|string|GraphTraversal|SelectProjection>|Field|string|GraphTraversal|SelectProjection) $fields
      *
      * @return self<T>
      */
-    public static function forFieldSet(string $modelClass, FieldSet $fieldSet, array|\Closure $fields): self
+    public static function forFieldSet(string $modelClass, FieldSet $fieldSet, array|Closure $fields): self
     {
         $modelClass = ClassString::model($modelClass);
-        $fields = $fields instanceof \Closure
+        $fields = $fields instanceof Closure
             ? TypedFieldResolver::resolveSelectionFor($fieldSet, $fields)
             : $fields;
         $containsGraph = self::fieldsContainGraph($fields);
@@ -100,13 +103,7 @@ final class ModelQuery implements CompilesQueries
      */
     private static function fieldsContainGraph(array $fields): bool
     {
-        foreach ($fields as $field) {
-            if ($field instanceof GraphTraversal) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($fields, fn($field) => $field instanceof GraphTraversal);
     }
 
     /**
@@ -114,7 +111,7 @@ final class ModelQuery implements CompilesQueries
      *
      * @return self<FieldSet>
      */
-    public static function forValue(string $modelClass, string|\Closure $field): self
+    public static function forValue(string $modelClass, string|Closure $field): self
     {
         $modelClass = ClassString::model($modelClass);
 
@@ -125,14 +122,14 @@ final class ModelQuery implements CompilesQueries
      * @template T of FieldSet
      * @param class-string $modelClass
      * @param T $fieldSet
-     * @phpstan-param string|\Closure(T): \Surqlize\Query\Fields\Field $field
+     * @phpstan-param string|Closure(T): Field $field
      *
      * @return self<T>
      */
-    public static function forValueFieldSet(string $modelClass, FieldSet $fieldSet, string|\Closure $field): self
+    public static function forValueFieldSet(string $modelClass, FieldSet $fieldSet, string|Closure $field): self
     {
         $modelClass = ClassString::model($modelClass);
-        $field = $field instanceof \Closure
+        $field = $field instanceof Closure
             ? TypedFieldResolver::resolveValueFieldFor($fieldSet, $field)
             : $field;
 
@@ -148,16 +145,16 @@ final class ModelQuery implements CompilesQueries
 
     /**
      * @param class-string|null $modelClass
-     * @param list<string|GraphTraversal|SelectProjection>|\Closure $fields
+     * @param list<string|GraphTraversal|SelectProjection>|Closure $fields
      *
-     * @return self<\Surqlize\Query\Fields\FieldSet>
+     * @return self<FieldSet>
      */
-    public static function forTable(string $table, array|\Closure $fields, ?string $modelClass = null): self
+    public static function forTable(string $table, array|Closure $fields, ?string $modelClass = null): self
     {
         $table = Identifier::table($table, 'table passed to ModelQuery::forTable()');
         $fieldContextClass = $modelClass !== null ? ClassString::model($modelClass) : null;
 
-        if ($fields instanceof \Closure) {
+        if ($fields instanceof Closure) {
             if ($fieldContextClass === null) {
                 throw new \InvalidArgumentException('Typed table selects require a model class context.');
             }
@@ -178,20 +175,20 @@ final class ModelQuery implements CompilesQueries
      *
      * {@see \Surqlize\Edge\EdgeQuery} should delegate here for `in()` / `out()` entry points.
      *
-     * @param list<string|GraphTraversal>|\Closure $fields
+     * @param list<string|GraphTraversal>|Closure $fields
      * @param class-string $edgeClass
      *
-     * @return self<\Surqlize\Query\Fields\FieldSet>
+     * @return self<FieldSet>
      */
     public static function forEdgeEndpoint(
-        string $edgeClass,
+        string        $edgeClass,
         EdgeDirection $direction,
-        array|\Closure $fields = ['*'],
+        array|Closure $fields = ['*'],
     ): self {
         $edgeClass = ClassString::edge($edgeClass);
         $endpointClass = EdgeEndpointResolver::endpointClass($edgeClass, $direction);
         $endpointTable = EdgeEndpointResolver::endpointTable($edgeClass, $direction);
-        $fields = $fields instanceof \Closure
+        $fields = $fields instanceof Closure
             ? TypedFieldResolver::resolveSelection($endpointClass, $fields)
             : $fields;
 
@@ -222,7 +219,7 @@ final class ModelQuery implements CompilesQueries
         }
 
         if (! class_exists($this->modelClass)) {
-            throw new \LogicException(
+            throw new LogicException(
                 sprintf('Cannot resolve table for ModelQuery without a model class; current context is "%s".', $this->modelClass),
             );
         }
@@ -236,14 +233,14 @@ final class ModelQuery implements CompilesQueries
     }
 
     /**
-     * @param list<string|GraphTraversal|SelectProjection>|\Closure $fields
-     * @phpstan-param list<string|GraphTraversal|SelectProjection>|\Closure(TFields): (list<\Surqlize\Query\Fields\Field|string|GraphTraversal|SelectProjection>|\Surqlize\Query\Fields\Field|string|GraphTraversal|SelectProjection) $fields
+     * @param list<string|GraphTraversal|SelectProjection>|Closure $fields
+     * @phpstan-param list<string|GraphTraversal|SelectProjection>|Closure(TFields): (list<Field|string|GraphTraversal|SelectProjection>|Field|string|GraphTraversal|SelectProjection) $fields
      *
      * @return self<TFields>
      */
-    public function select(array|\Closure $fields): self
+    public function select(array|Closure $fields): self
     {
-        $fields = $fields instanceof \Closure
+        $fields = $fields instanceof Closure
             ? TypedFieldResolver::resolveSelectionFor($this->fieldSet, $fields)
             : $fields;
 
@@ -251,13 +248,13 @@ final class ModelQuery implements CompilesQueries
     }
 
     /**
-     * @phpstan-param string|\Closure(TFields): \Surqlize\Query\Fields\Field $field
+     * @phpstan-param string|Closure(TFields): Field $field
      *
      * @return self<TFields>
      */
-    public function selectValue(string|\Closure $field): self
+    public function selectValue(string|Closure $field): self
     {
-        $field = $field instanceof \Closure
+        $field = $field instanceof Closure
             ? TypedFieldResolver::resolveValueFieldFor($this->fieldSet, $field)
             : $field;
 
@@ -265,11 +262,11 @@ final class ModelQuery implements CompilesQueries
     }
 
     /**
-     * @phpstan-param \Closure(TFields): (\Surqlize\Query\Ast\WherePredicate|list<\Surqlize\Query\Ast\WherePredicate>) $field
+     * @phpstan-param Closure(TFields): (\Surqlize\Query\Ast\WherePredicate|list<\Surqlize\Query\Ast\WherePredicate>) $field
      *
      * @return self<TFields>
      */
-    public function where(\Closure $field): self
+    public function where(Closure $field): self
     {
         $where = $this->ast->where() ?? new WhereClause();
         $where = clone $where;
@@ -282,11 +279,11 @@ final class ModelQuery implements CompilesQueries
     }
 
     /**
-     * @phpstan-param \Closure(TFields): (\Surqlize\Query\Fields\OrderExpression|list<\Surqlize\Query\Fields\OrderExpression>)|OrderExpression|string|list<OrderExpression> $order
+     * @phpstan-param Closure(TFields): (\Surqlize\Query\Fields\Field|\Surqlize\Query\Fields\OrderExpression|list<\Surqlize\Query\Fields\Field|\Surqlize\Query\Fields\OrderExpression>)|OrderExpression|string|list<OrderExpression> $order
      *
      * @return self<TFields>
      */
-    public function orderBy(\Closure|OrderExpression|string|array $order, OrderDirection|string $direction = OrderDirection::Ascending): self
+    public function orderBy(Closure|OrderExpression|string|array $order, OrderDirection|string $direction = OrderDirection::Ascending): self
     {
         $orderClause = $this->ast->order() ?? new OrderClause();
         $orderClause = clone $orderClause;
@@ -299,13 +296,13 @@ final class ModelQuery implements CompilesQueries
     }
 
     /**
-     * @phpstan-param string|list<string>|\Closure(TFields): (\Surqlize\Query\Fields\Field|list<\Surqlize\Query\Fields\Field>) $fields
+     * @phpstan-param string|list<string>|Closure(TFields): (Field|list<Field>) $fields
      *
      * @return self<TFields>
      */
-    public function fetch(string|array|\Closure $fields): self
+    public function fetch(string|array|Closure $fields): self
     {
-        if ($fields instanceof \Closure) {
+        if ($fields instanceof Closure) {
             $fields = TypedFieldResolver::resolveFetchFieldsFor($this->fieldSet, $fields);
         }
 
@@ -318,11 +315,11 @@ final class ModelQuery implements CompilesQueries
     }
 
     /**
-     * @phpstan-param string|list<string>|\Closure(TFields): (\Surqlize\Query\Fields\Field|list<\Surqlize\Query\Fields\Field>) $fields
+     * @phpstan-param string|list<string>|Closure(TFields): (Field|list<Field>) $fields
      *
      * @return self<TFields>
      */
-    public function omit(string|array|\Closure $fields): self
+    public function omit(string|array|Closure $fields): self
     {
         $fields = $this->resolveFieldPaths($fields, 'omit()');
 
@@ -330,11 +327,11 @@ final class ModelQuery implements CompilesQueries
     }
 
     /**
-     * @phpstan-param string|list<string>|\Closure(TFields): (\Surqlize\Query\Fields\Field|list<\Surqlize\Query\Fields\Field>) $fields
+     * @phpstan-param string|list<string>|Closure(TFields): (Field|list<Field>) $fields
      *
      * @return self<TFields>
      */
-    public function split(string|array|\Closure $fields): self
+    public function split(string|array|Closure $fields): self
     {
         $fields = $this->resolveFieldPaths($fields, 'split()');
 
@@ -342,11 +339,11 @@ final class ModelQuery implements CompilesQueries
     }
 
     /**
-     * @phpstan-param string|list<string>|\Closure(TFields): (\Surqlize\Query\Fields\Field|list<\Surqlize\Query\Fields\Field>) $fields
+     * @phpstan-param string|list<string>|Closure(TFields): (Field|list<Field>) $fields
      *
      * @return self<TFields>
      */
-    public function groupBy(string|array|\Closure $fields): self
+    public function groupBy(string|array|Closure $fields): self
     {
         $fields = $this->resolveFieldPaths($fields, 'groupBy()');
 
@@ -517,7 +514,7 @@ final class ModelQuery implements CompilesQueries
     public function collectModels(): array
     {
         if ($this->ast->isSelectValue()) {
-            throw new \LogicException('Cannot hydrate models from a SELECT VALUE query.');
+            throw new LogicException('Cannot hydrate models from a SELECT VALUE query.');
         }
 
         $modelClass = $this->hydrationClass();
@@ -563,16 +560,16 @@ final class ModelQuery implements CompilesQueries
     }
 
     /**
-     * @param list<OrderExpression>|\Closure|OrderExpression|string $order
+     * @param list<OrderExpression>|Closure|OrderExpression|string $order
      *
      * @return list<OrderExpression>
      */
     private function resolveOrderExpressions(
-        \Closure|OrderExpression|string|array $order,
+        Closure|OrderExpression|string|array $order,
         OrderDirection|string $direction,
     ): array {
-        if ($order instanceof \Closure) {
-            return TypedFieldResolver::resolveOrderFor($this->fieldSet, $order);
+        if ($order instanceof Closure) {
+            return TypedFieldResolver::resolveOrderFor($this->fieldSet, $order, $this->normalizeOrderDirection($direction));
         }
 
         if ($order instanceof OrderExpression) {
@@ -587,13 +584,13 @@ final class ModelQuery implements CompilesQueries
     }
 
     /**
-     * @phpstan-param string|list<string>|\Closure(TFields): (\Surqlize\Query\Fields\Field|list<\Surqlize\Query\Fields\Field>) $fields
+     * @phpstan-param string|list<string>|Closure(TFields): (Field|list<Field>) $fields
      *
      * @return list<string>
      */
-    private function resolveFieldPaths(string|array|\Closure $fields, string $operation): array
+    private function resolveFieldPaths(string|array|Closure $fields, string $operation): array
     {
-        if ($fields instanceof \Closure) {
+        if ($fields instanceof Closure) {
             return TypedFieldResolver::resolveFieldPathsFor($this->fieldSet, $fields, $operation);
         }
 
@@ -623,7 +620,6 @@ final class ModelQuery implements CompilesQueries
             $manager = \Surqlize\Connection\ConnectionManager::class;
 
             try {
-                /** @var QueryExecutor $executor */
                 $executor = $manager::get();
             } catch (\RuntimeException $exception) {
                 throw new \RuntimeException(
@@ -663,7 +659,7 @@ final class ModelQuery implements CompilesQueries
             return $modelClass;
         }
 
-        throw new \LogicException(
+        throw new LogicException(
             sprintf('Cannot hydrate query results for table "%s"; no model is registered for that table.', $table),
         );
     }
