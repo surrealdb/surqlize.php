@@ -5,7 +5,7 @@
     "license": "MIT",
     "require": {
         "php": ">=8.4",
-        "surrealdb/surrealdb.php": "@dev"
+        "surrealdb/surrealdb.php": "2.0.0-alpha.0@alpha"
     },
     "require-dev": {
         "phpstan/phpstan": "^2.0",
@@ -27,8 +27,8 @@
     ],
     "repositories": [
         {
-            "type": "path",
-            "url": "../surrealdb.php-refined"
+            "type": "vcs",
+            "url": "https://github.com/surrealdb/surrealdb.php"
         }
     ],
     "minimum-stability": "dev",

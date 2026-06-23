@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "dec87745744b00282e7d896b73944311",
+    "content-hash": "333a5565c0918755aa6588b361c98b80",
     "packages": [
         {
             "name": "brick/math",
@@ -327,11 +327,17 @@
         },
         {
             "name": "surrealdb/surrealdb.php",
-            "version": "dev-main",
+            "version": "v2.0.0-alpha.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/surrealdb/surrealdb.php.git",
+                "reference": "ca088516b48122d51437634932af2da3eadb8a4d"
+            },
             "dist": {
-                "type": "path",
-                "url": "../surrealdb.php-refined",
-                "reference": "5b3ff6be480e686587d822e138fba447ce028783"
+                "type": "zip",
+                "url": "https://api.github.com/repos/surrealdb/surrealdb.php/zipball/ca088516b48122d51437634932af2da3eadb8a4d",
+                "reference": "ca088516b48122d51437634932af2da3eadb8a4d",
+                "shasum": ""
             },
             "require": {
                 "brick/math": "^0.12 || ^0.13 || ^0.14 || ^0.17.2",
@@ -345,9 +351,13 @@
                 "welpie21/cbor.php": "^2.1"
             },
             "require-dev": {
+                "amphp/http-client": "^5.3",
+                "amphp/websocket-client": "^2.0",
                 "guzzlehttp/guzzle": "^7.11",
                 "openswoole/core": "^26.2",
                 "php-http/discovery": "^1.20",
+                "phpstan/phpstan": "^2.2",
+                "phpstan/phpstan-phpunit": "^2.0",
                 "phpunit/phpunit": "^13.0",
                 "revolt/event-loop": "^1.0"
             },
@@ -371,6 +381,13 @@
                 }
             },
             "scripts": {
+                "analyse": [
+                    "vendor/bin/phpstan analyse --memory-limit=512M"
+                ],
+                "check": [
+                    "@analyse",
+                    "@test"
+                ],
                 "test": [
                     "vendor/bin/phpunit --testsuite default"
                 ],
@@ -395,9 +412,11 @@
                 "surrealdb",
                 "websocket"
             ],
-            "transport-options": {
-                "relative": true
-            }
+            "support": {
+                "source": "https://github.com/surrealdb/surrealdb.php/tree/v2.0.0-alpha.0",
+                "issues": "https://github.com/surrealdb/surrealdb.php/issues"
+            },
+            "time": "2026-06-23T17:14:29+00:00"
         },
         {
             "name": "symfony/polyfill-uuid",
@@ -2465,7 +2484,7 @@
     "aliases": [],
     "minimum-stability": "dev",
     "stability-flags": {
-        "surrealdb/surrealdb.php": 20
+        "surrealdb/surrealdb.php": 15
     },
     "prefer-stable": true,
     "prefer-lowest": false,
