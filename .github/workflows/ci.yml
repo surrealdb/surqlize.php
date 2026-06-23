@@ -1,4 +1,4 @@
-name: CI
+name: Tests
 
 on:
   pull_request:
@@ -24,8 +24,8 @@ defaults:
     working-directory: surqlize.php
 
 jobs:
-  quality:
-    name: PHP ${{ matrix.php }}
+  tests:
+    name: Tests (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
 
     strategy:
