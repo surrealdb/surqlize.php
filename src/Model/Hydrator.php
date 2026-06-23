@@ -133,6 +133,9 @@ final class Hydrator
 		];
 	}
 
+	/**
+	 * @return RecordId<string>
+	 */
 	private function castId(mixed $value): RecordId
 	{
 		if ($value instanceof RecordId) {
@@ -161,6 +164,8 @@ final class Hydrator
 
 	/**
 	 * @param class-string<Model> $castClass
+	 *
+	 * @return Model|RecordId<string>|null
 	 */
 	private function castNested(
 		string $castClass,

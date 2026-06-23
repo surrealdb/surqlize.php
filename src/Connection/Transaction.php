@@ -19,7 +19,10 @@ final class Transaction implements QueryExecutor
         private readonly QueryExecutor $executor,
     ) {}
 
-    public function query(BoundQuery $query): mixed
+    /**
+     * @return list<mixed>
+     */
+    public function query(BoundQuery $query): array
     {
         $this->assertOpen();
         $this->queries[] = $query;
@@ -42,7 +45,10 @@ final class Transaction implements QueryExecutor
         return $this;
     }
 
-    public function commit(): mixed
+    /**
+     * @return list<mixed>|null
+     */
+    public function commit(): ?array
     {
         $this->assertOpen();
         $this->closed = true;

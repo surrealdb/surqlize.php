@@ -154,6 +154,9 @@ class RelateBuilder implements CompilesQueries
         return $this->toSdkQuery()->execute();
     }
 
+    /**
+     * @return RelateQuery<mixed>
+     */
     public function toSdkQuery(): RelateQuery
     {
         [$from, $edgeTable, $to] = $this->resolvedEndpoints();
@@ -173,7 +176,7 @@ class RelateBuilder implements CompilesQueries
     }
 
     /**
-     * @return array{0: RecordId, 1: string, 2: RecordId}
+     * @return array{0: RecordId<string>, 1: string, 2: RecordId<string>}
      */
     private function resolvedEndpoints(): array
     {
@@ -202,6 +205,8 @@ class RelateBuilder implements CompilesQueries
 
     /**
      * @param class-string<Model> $expectedClass
+     *
+     * @return RecordId<string>
      */
     private function recordId(Model $model, string $expectedClass): RecordId
     {

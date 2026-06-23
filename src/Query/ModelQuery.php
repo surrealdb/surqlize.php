@@ -492,19 +492,8 @@ final class ModelQuery implements CompilesQueries
         $query = $this->toBoundQuery();
         $result = $executor->query($query);
 
-        if (! is_array($result)) {
-            throw new \RuntimeException(
-                sprintf(
-                    'Expected query executor to return a list of rows for model context "%s"; got %s while running: %s',
-                    $this->modelClass !== '' ? $this->modelClass : 'table "' . $this->table() . '"',
-                    get_debug_type($result),
-                    $query->query,
-                ),
-            );
-        }
-
         if ($this->ast->isSelectValue()) {
-            return array_is_list($result) ? $result : array_values($result);
+            return $result;
         }
 
         foreach ($result as $index => $row) {
@@ -521,7 +510,7 @@ final class ModelQuery implements CompilesQueries
             }
         }
 
-        return array_is_list($result) ? $result : array_values($result);
+        return $result;
     }
 
     /**

@@ -17,6 +17,7 @@ class Address extends Model
 {
     use AddressFieldTyping;
 
+    /** @var RecordId<'address'> */
     #[Id] public RecordId $id;
 
     public string $street;

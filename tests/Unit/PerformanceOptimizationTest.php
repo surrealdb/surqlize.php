@@ -150,11 +150,17 @@ final class PerformanceOptimizationTest extends TestCase
 
 final class PerformanceCapturingExecutor implements QueryExecutor
 {
+	/**
+	 * @param list<mixed> $result
+	 */
 	public function __construct(
-		private readonly mixed $result,
+		private readonly array $result,
 	) {}
 
-	public function query(BoundQuery $query): mixed
+	/**
+	 * @return list<mixed>
+	 */
+	public function query(BoundQuery $query): array
 	{
 		return $this->result;
 	}

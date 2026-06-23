@@ -18,6 +18,7 @@ class User extends Model
 {
     use UserFieldTyping;
 
+    /** @var RecordId<'user'> */
     #[Id] public RecordId $id;
 
     public string $name;

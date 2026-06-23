@@ -163,11 +163,17 @@ final class CapturingExecutor implements QueryExecutor
     /** @var list<BoundQuery> */
     public array $queries = [];
 
+    /**
+     * @param list<mixed> $result
+     */
     public function __construct(
-        private readonly mixed $result,
+        private readonly array $result,
     ) {}
 
-    public function query(BoundQuery $query): mixed
+    /**
+     * @return list<mixed>
+     */
+    public function query(BoundQuery $query): array
     {
         $this->queries[] = $query;
 
@@ -178,6 +184,7 @@ final class CapturingExecutor implements QueryExecutor
 #[Table('roadmap_address')]
 final class RoadmapAddress extends Model
 {
+    /** @var RecordId<'roadmap_address'> */
     #[Id] public RecordId $id;
 
     public string $street;
@@ -186,6 +193,7 @@ final class RoadmapAddress extends Model
 #[Table('roadmap_user')]
 final class RoadmapUser extends Model
 {
+    /** @var RecordId<'roadmap_user'> */
     #[Id] public RecordId $id;
 
     public string $name;

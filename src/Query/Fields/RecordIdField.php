@@ -32,11 +32,17 @@ final class RecordIdField extends Field
         return $this->condition(Operator::NOT_EQUALS, $this->normalize($value));
     }
 
+    /**
+     * @param RecordId<string> $recordId
+     */
     public function record(RecordId $recordId): WhereCondition
     {
         return $this->condition(Operator::EQUALS, $this->assertTable($recordId));
     }
 
+    /**
+     * @return RecordId<string>
+     */
     private function normalize(mixed $value): RecordId
     {
         if ($value instanceof RecordId) {
@@ -52,6 +58,11 @@ final class RecordIdField extends Field
         );
     }
 
+    /**
+     * @param RecordId<string> $recordId
+     *
+     * @return RecordId<string>
+     */
     private function assertTable(RecordId $recordId): RecordId
     {
         if ($recordId->table !== $this->table) {

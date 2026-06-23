@@ -59,7 +59,10 @@ final class SchemaCapturingExecutor implements QueryExecutor
     /** @var list<BoundQuery> */
     public array $queries = [];
 
-    public function query(BoundQuery $query): mixed
+    /**
+     * @return list<mixed>
+     */
+    public function query(BoundQuery $query): array
     {
         $this->queries[] = $query;
 

@@ -66,17 +66,6 @@ final class ErrorHandlingTest extends TestCase
         User::select(fn () => [42]);
     }
 
-    public function test_collect_rejects_non_array_executor_results(): void
-    {
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Expected query executor to return a list of rows');
-        $this->expectExceptionMessage('SELECT name FROM user');
-
-        User::select(['name'])
-            ->withExecutor(new MalformedResultExecutor('not rows'))
-            ->collect();
-    }
-
     public function test_collect_rejects_non_array_rows(): void
     {
         $this->expectException(\RuntimeException::class);
@@ -132,11 +121,17 @@ final class ErrorHandlingTest extends TestCase
 
 final class MalformedResultExecutor implements QueryExecutor
 {
+    /**
+     * @param list<mixed> $result
+     */
     public function __construct(
-        private readonly mixed $result,
+        private readonly array $result,
     ) {}
 
-    public function query(BoundQuery $query): mixed
+    /**
+     * @return list<mixed>
+     */
+    public function query(BoundQuery $query): array
     {
         return $this->result;
     }

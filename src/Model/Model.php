@@ -342,6 +342,9 @@ abstract class Model
         return $data;
     }
 
+    /**
+     * @return RecordId<string>|null
+     */
     private function recordIdForPersistence(ModelMetadata $metadata): ?RecordId
     {
         $idProperty = $metadata->idProperty;
@@ -361,6 +364,9 @@ abstract class Model
         return $id instanceof RecordId ? self::recordIdFrom($id, $metadata) : null;
     }
 
+    /**
+     * @return RecordId<string>|null
+     */
     private static function recordIdFrom(mixed $id, ModelMetadata $metadata): ?RecordId
     {
         if ($id === null) {

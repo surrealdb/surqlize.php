@@ -16,8 +16,10 @@ use SurrealDB\SDK\Types\RecordId;
  */
 abstract class Edge extends Model
 {
+    /** @var RecordId<string> */
     public RecordId $in;
 
+    /** @var RecordId<string> */
     public RecordId $out;
 
     /**

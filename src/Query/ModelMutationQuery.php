@@ -42,6 +42,7 @@ final class ModelMutationQuery implements CompilesQueries
 
     /**
      * @param class-string<Model> $modelClass
+     * @param RecordId<string>|string $target
      */
     private function __construct(
         private readonly string $action,
@@ -54,6 +55,7 @@ final class ModelMutationQuery implements CompilesQueries
     /**
      * @param class-string<Model> $modelClass
      * @param array<string, mixed> $data
+     * @param RecordId<string>|null $id
      */
     public static function create(string $modelClass, array $data, ?RecordId $id = null, ?QueryExecutor $executor = null): self
     {
@@ -67,6 +69,7 @@ final class ModelMutationQuery implements CompilesQueries
 
     /**
      * @param class-string<Model> $modelClass
+     * @param RecordId<string>|string $target
      * @param array<string, mixed> $data
      */
     public static function update(string $modelClass, RecordId|string $target, array $data, ?QueryExecutor $executor = null): self
@@ -80,6 +83,7 @@ final class ModelMutationQuery implements CompilesQueries
 
     /**
      * @param class-string<Model> $modelClass
+     * @param RecordId<string>|string $target
      * @param array<string, mixed> $data
      */
     public static function upsert(string $modelClass, RecordId|string $target, array $data, ?QueryExecutor $executor = null): self
@@ -93,6 +97,7 @@ final class ModelMutationQuery implements CompilesQueries
 
     /**
      * @param class-string<Model> $modelClass
+     * @param RecordId<string>|string $target
      */
     public static function delete(string $modelClass, RecordId|string $target, ?QueryExecutor $executor = null): self
     {
