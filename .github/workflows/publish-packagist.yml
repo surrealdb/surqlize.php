@@ -1,0 +1,82 @@
+name: Publish to Packagist
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-packagist-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  notify-packagist:
+    name: Notify Packagist
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout release
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate Composer metadata
+        run: composer validate --no-check-publish
+
+      - name: Resolve package metadata
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          package_name="$(php -r '$composer = json_decode(file_get_contents("composer.json"), true, flags: JSON_THROW_ON_ERROR); echo $composer["name"] ?? "";')"
+
+          if [[ -z "${package_name}" ]]; then
+            echo "composer.json does not define a package name." >&2
+            exit 1
+          fi
+
+          echo "name=${package_name}" >> "${GITHUB_OUTPUT}"
+          echo "repository_url=https://github.com/${GITHUB_REPOSITORY}" >> "${GITHUB_OUTPUT}"
+
+      - name: Notify Packagist
+        env:
+          PACKAGIST_USERNAME: ${{ secrets.PACKAGIST_USERNAME }}
+          PACKAGIST_TOKEN: ${{ secrets.PACKAGIST_TOKEN }}
+          REPOSITORY_URL: ${{ steps.package.outputs.repository_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${PACKAGIST_USERNAME}" || -z "${PACKAGIST_TOKEN}" ]]; then
+            echo "Missing PACKAGIST_USERNAME or PACKAGIST_TOKEN repository secret." >&2
+            exit 1
+          fi
+
+          response_file="$(mktemp)"
+          status_code="$(
+            curl --silent --show-error \
+              --output "${response_file}" \
+              --write-out "%{http_code}" \
+              --request POST \
+              --header "Content-Type: application/json" \
+              --data "{\"repository\":{\"url\":\"${REPOSITORY_URL}\"}}" \
+              "https://packagist.org/api/update-package?username=${PACKAGIST_USERNAME}&apiToken=${PACKAGIST_TOKEN}"
+          )"
+
+          if [[ "${status_code}" -lt 200 || "${status_code}" -ge 300 ]]; then
+            echo "Packagist update failed with HTTP ${status_code}." >&2
+            cat "${response_file}" >&2
+            exit 1
+          fi
+
+          echo "Packagist accepted the update request for ${{ steps.package.outputs.name }}."
