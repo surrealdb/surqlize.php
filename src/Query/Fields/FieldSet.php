@@ -15,6 +15,10 @@ class FieldSet
     /** @var array<string, Field> */
     private array $dynamicFields = [];
 
+    private bool $metadataResolved = false;
+
+    private ?ModelMetadata $metadata = null;
+
     /**
      * @param class-string|string $modelClass
      */
@@ -91,10 +95,14 @@ class FieldSet
 
     private function metadata(): ?ModelMetadata
     {
-        if (! is_subclass_of($this->modelClass, Model::class)) {
-            return null;
+        if (! $this->metadataResolved) {
+            $this->metadataResolved = true;
+
+            if (is_subclass_of($this->modelClass, Model::class)) {
+                $this->metadata = ModelMetadata::for($this->modelClass);
+            }
         }
 
-        return ModelMetadata::for($this->modelClass);
+        return $this->metadata;
     }
 }

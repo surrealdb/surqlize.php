@@ -28,8 +28,11 @@ final class TypedFieldResolver
         $items = is_array($result) ? $result : [$result];
         $resolved = [];
 
-        foreach (array_values($items) as $index => $item) {
+        $index = 0;
+
+        foreach ($items as $item) {
             $resolved[] = self::fieldName($item, 'select()', $fields, $index);
+            $index++;
         }
 
         return $resolved;
@@ -79,7 +82,9 @@ final class TypedFieldResolver
         $items = is_array($result) ? $result : [$result];
 		$resolved = [];
 
-		foreach (array_values($items) as $index => $item) {
+        $index = 0;
+
+		foreach ($items as $item) {
 			if (! $item instanceof Field) {
 				throw new \InvalidArgumentException(
 					sprintf(
@@ -92,6 +97,7 @@ final class TypedFieldResolver
 			}
 
 			$resolved[] = $item->path();
+            $index++;
 		}
 
 		return $resolved;
@@ -120,9 +126,12 @@ final class TypedFieldResolver
         $items = is_array($result) ? $result : [$result];
         $resolved = [];
 
-        foreach (array_values($items) as $index => $item) {
+        $index = 0;
+
+        foreach ($items as $item) {
             if ($item instanceof Field) {
                 $resolved[] = new OrderExpression($item->path(), $direction);
+                $index++;
 
                 continue;
             }
@@ -139,6 +148,7 @@ final class TypedFieldResolver
             }
 
             $resolved[] = $item;
+            $index++;
         }
 
         return $resolved;
@@ -153,7 +163,9 @@ final class TypedFieldResolver
         $items = is_array($result) ? $result : [$result];
         $resolved = [];
 
-        foreach (array_values($items) as $index => $item) {
+        $index = 0;
+
+        foreach ($items as $item) {
             if (! $item instanceof Field) {
                 throw new \InvalidArgumentException(
                     sprintf(
@@ -167,6 +179,7 @@ final class TypedFieldResolver
             }
 
             $resolved[] = $item->path();
+            $index++;
         }
 
         return $resolved;

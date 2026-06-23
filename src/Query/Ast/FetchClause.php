@@ -29,12 +29,16 @@ final class FetchClause implements Node
             return '';
         }
 
-        $fields = [];
+        $fields = '';
 
         foreach ($this->fields as $index => $field) {
-            $fields[] = Identifier::field($field, sprintf('FETCH field at index %d', $index));
+            if ($fields !== '') {
+                $fields .= ', ';
+            }
+
+            $fields .= Identifier::field($field, sprintf('FETCH field at index %d', $index));
         }
 
-        return 'FETCH ' . implode(', ', $fields);
+        return 'FETCH ' . $fields;
     }
 }

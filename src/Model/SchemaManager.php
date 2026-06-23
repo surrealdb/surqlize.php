@@ -33,7 +33,10 @@ final class SchemaManager
 
             foreach ($schema->definitions() as $definition) {
                 if ($definition instanceof SchemaDefinition) {
-                    $definitions = [...$definitions, ...$definition->definitions()];
+                    foreach ($definition->definitions() as $nestedDefinition) {
+                        $definitions[] = $nestedDefinition;
+                    }
+
                     continue;
                 }
 

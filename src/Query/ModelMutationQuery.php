@@ -294,7 +294,21 @@ final class ModelMutationQuery implements CompilesQueries
 
     public function firstModel(): ?Model
     {
-        return $this->executeModels()[0] ?? null;
+        $result = $this->execute();
+
+        if (! is_array($result)) {
+            throw new \RuntimeException(sprintf('Expected mutation result for "%s" to be a list; got %s.', $this->modelClass, get_debug_type($result)));
+        }
+
+        foreach ($result as $index => $row) {
+            if (! is_array($row)) {
+                throw new \RuntimeException(sprintf('Expected mutation row at index %d for "%s" to be an array; got %s.', $index, $this->modelClass, get_debug_type($row)));
+            }
+
+            return (new Hydrator())->hydrate($this->modelClass, $row);
+        }
+
+        return null;
     }
 
     /** @param 'CONTENT'|'MERGE'|'REPLACE'|'PATCH' $mutation */
@@ -343,13 +357,17 @@ final class ModelMutationQuery implements CompilesQueries
             return ' RETURN VALUE ' . Identifier::field($this->returning['value'], 'RETURN VALUE field');
         }
 
-        $fields = [];
+        $fields = '';
 
         foreach ($this->returning as $index => $field) {
-            $fields[] = Identifier::field($field, sprintf('RETURN field at index %d', $index));
+            if ($fields !== '') {
+                $fields .= ', ';
+            }
+
+            $fields .= Identifier::field($field, sprintf('RETURN field at index %d', $index));
         }
 
-        return ' RETURN ' . implode(', ', $fields);
+        return ' RETURN ' . $fields;
     }
 
     private function resolveExecutor(): QueryExecutor

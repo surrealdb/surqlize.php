@@ -106,7 +106,9 @@ class RelateBuilder implements CompilesQueries
     /** @param array<string, mixed> $data */
     public function content(array $data): self
     {
-        $this->content = [...$this->content, ...$data];
+        foreach ($data as $key => $value) {
+            $this->content[$key] = $value;
+        }
 
         return $this;
     }
@@ -235,13 +237,17 @@ class RelateBuilder implements CompilesQueries
     /** @param array<string, mixed> $data */
     private function compileContent(array $data): string
     {
-        $parts = [];
+        $content = '';
 
         foreach ($data as $key => $value) {
-            $parts[] = sprintf('%s: %s', Identifier::field($key, 'RELATE content key'), $this->compileContentValue($value));
+            if ($content !== '') {
+                $content .= ', ';
+            }
+
+            $content .= sprintf('%s: %s', Identifier::field($key, 'RELATE content key'), $this->compileContentValue($value));
         }
 
-        return '{ ' . implode(', ', $parts) . ' }';
+        return '{ ' . $content . ' }';
     }
 
     private function compileContentValue(mixed $value): string

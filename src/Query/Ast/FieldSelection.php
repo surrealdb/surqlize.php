@@ -30,17 +30,21 @@ final class FieldSelection implements Node
             return '*';
         }
 
-        $compiled = [];
+        $compiled = '';
 
         foreach ($this->fields as $index => $field) {
-            $compiled[] = match (true) {
+            if ($compiled !== '') {
+                $compiled .= ', ';
+            }
+
+            $compiled .= match (true) {
                 is_string($field) => Identifier::selection($field, sprintf('SELECT field at index %d', $index)),
                 $field instanceof SelectProjection => $field->compile(),
                 default => $field->compile(),
             };
         }
 
-        return implode(', ', $compiled);
+        return $compiled;
     }
 
     public function compileBound(BoundQuery $query): string
@@ -49,16 +53,20 @@ final class FieldSelection implements Node
             return '*';
         }
 
-        $compiled = [];
+        $compiled = '';
 
         foreach ($this->fields as $index => $field) {
-            $compiled[] = match (true) {
+            if ($compiled !== '') {
+                $compiled .= ', ';
+            }
+
+            $compiled .= match (true) {
                 is_string($field) => Identifier::selection($field, sprintf('SELECT field at index %d', $index)),
                 $field instanceof SelectProjection => $field->compileBound(),
                 default => $field->compileBound($query),
             };
         }
 
-        return implode(', ', $compiled);
+        return $compiled;
     }
 }

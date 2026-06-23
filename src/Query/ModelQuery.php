@@ -20,6 +20,7 @@ use Surqlize\Query\Ast\SelectStatement;
 use Surqlize\Query\Ast\SplitClause;
 use Surqlize\Query\Ast\TimeoutClause;
 use Surqlize\Query\Ast\WhereClause;
+use Surqlize\Query\Ast\WhereCondition;
 use Surqlize\Query\Ast\SelectProjection;
 use Surqlize\Query\Ast\WithIndexClause;
 use Surqlize\Query\Compiler\SurrealQlCompiler;
@@ -262,18 +263,30 @@ final class ModelQuery implements CompilesQueries
     }
 
     /**
-     * @phpstan-param Closure(TFields): (\Surqlize\Query\Ast\WherePredicate|list<\Surqlize\Query\Ast\WherePredicate>) $field
+     * @deprecated Passing string field names is kept for migration only. Prefer typed callbacks.
+     *
+     * @phpstan-param Closure(TFields): (\Surqlize\Query\Ast\WherePredicate|list<\Surqlize\Query\Ast\WherePredicate>)|string $field
      *
      * @return self<TFields>
      */
-    public function where(Closure $field): self
+    public function where(Closure|string $field, Operator|string|null $operator = null, mixed $value = null): self
     {
         $where = $this->ast->where() ?? new WhereClause();
         $where = clone $where;
 
-        foreach (TypedWhereResolver::resolveFor($this->fieldSet, $field) as $condition) {
-            $where->add($condition);
+        if ($field instanceof Closure) {
+            foreach (TypedWhereResolver::resolveFor($this->fieldSet, $field) as $condition) {
+                $where->add($condition);
+            }
+
+            return $this->withAst($this->ast->withWhere($where));
         }
+
+        if ($operator === null) {
+            throw new \InvalidArgumentException('Legacy string where() calls require an operator.');
+        }
+
+        $where->add(new WhereCondition($field, $operator, $value));
 
         return $this->withAst($this->ast->withWhere($where));
     }
@@ -307,9 +320,12 @@ final class ModelQuery implements CompilesQueries
         }
 
         $existing = $this->ast->fetch();
-        $merged = $existing !== null
-            ? [...$existing->fields(), ...(is_array($fields) ? $fields : [$fields])]
-            : (is_array($fields) ? $fields : [$fields]);
+        $merged = $existing !== null ? $existing->fields() : [];
+        $fields = is_array($fields) ? $fields : [$fields];
+
+        foreach ($fields as $field) {
+            $merged[] = $field;
+        }
 
         return $this->withAst($this->ast->withFetch(new FetchClause($merged)));
     }
@@ -488,7 +504,7 @@ final class ModelQuery implements CompilesQueries
         }
 
         if ($this->ast->isSelectValue()) {
-            return array_values($result);
+            return array_is_list($result) ? $result : array_values($result);
         }
 
         foreach ($result as $index => $row) {
@@ -505,7 +521,7 @@ final class ModelQuery implements CompilesQueries
             }
         }
 
-        return array_values($result);
+        return array_is_list($result) ? $result : array_values($result);
     }
 
     /**
@@ -519,11 +535,30 @@ final class ModelQuery implements CompilesQueries
 
         $modelClass = $this->hydrationClass();
         $hydrator = new Hydrator();
+        $models = [];
 
-        return array_map(
-            static fn (array $row): Model => $hydrator->hydrate($modelClass, $row),
-            $this->collect(),
-        );
+        foreach ($this->collect() as $row) {
+            $models[] = $hydrator->hydrate($modelClass, $row);
+        }
+
+        return $models;
+    }
+
+    /**
+     * @return \Generator<int, Model>
+     */
+    public function lazyModels(): \Generator
+    {
+        if ($this->ast->isSelectValue()) {
+            throw new LogicException('Cannot hydrate models from a SELECT VALUE query.');
+        }
+
+        $modelClass = $this->hydrationClass();
+        $hydrator = new Hydrator();
+
+        foreach ($this->collect() as $row) {
+            yield $hydrator->hydrate($modelClass, $row);
+        }
     }
 
     public function first(): mixed

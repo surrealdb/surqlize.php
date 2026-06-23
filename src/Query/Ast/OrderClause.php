@@ -36,9 +36,16 @@ final class OrderClause implements Node
             return '';
         }
 
-        return 'ORDER BY ' . implode(
-            ', ',
-            array_map(static fn (OrderExpression $expression): string => $expression->compile(), $this->expressions),
-        );
+        $sql = '';
+
+        foreach ($this->expressions as $expression) {
+            if ($sql !== '') {
+                $sql .= ', ';
+            }
+
+            $sql .= $expression->compile();
+        }
+
+        return 'ORDER BY ' . $sql;
     }
 }

@@ -27,6 +27,7 @@ final class ModelMetadata
      * @param class-string<SchemaContract>|null $schemaClass
      * @param array<string, class-string<Model>> $casts
      * @param list<string> $properties
+     * @param array<string, ReflectionProperty> $propertyReflections
 	 * @param array<string, true> $propertyLookup
 	 * @param array<string, string|null> $propertyTypes
      * @param array<string, 'search'|'vector'|'geometry'> $propertyFieldKinds
@@ -38,6 +39,7 @@ final class ModelMetadata
         public readonly ?string $idProperty,
         public readonly array $casts,
         public readonly array $properties,
+        public readonly array $propertyReflections,
 		public readonly array $propertyLookup,
 		public readonly array $propertyTypes,
         public readonly array $propertyFieldKinds,
@@ -71,6 +73,7 @@ final class ModelMetadata
         $idProperty = null;
         $casts = [];
         $properties = [];
+        $propertyReflections = [];
 		$propertyLookup = [];
 		$propertyTypes = [];
         $propertyFieldKinds = [];
@@ -82,6 +85,7 @@ final class ModelMetadata
 
             $name = $property->getName();
             $properties[] = $name;
+            $propertyReflections[$name] = $property;
 			$propertyLookup[$name] = true;
 			$type = $property->getType();
 			$propertyTypes[$name] = $type instanceof \ReflectionNamedType ? $type->getName() : null;
@@ -131,6 +135,7 @@ final class ModelMetadata
             idProperty: $idProperty,
             casts: $casts,
             properties: $properties,
+            propertyReflections: $propertyReflections,
 			propertyLookup: $propertyLookup,
 			propertyTypes: $propertyTypes,
             propertyFieldKinds: $propertyFieldKinds,

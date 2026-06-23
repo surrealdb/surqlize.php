@@ -11,6 +11,8 @@ use Surqlize\Query\Fields\FieldSetRegistry;
 use Surqlize\Query\Fields\StringField;
 use Surqlize\Query\Support\EdgeEndpointResolver;
 use Surqlize\Query\EdgeDirection;
+use SurrealDB\SDK\Contracts\QueryExecutor;
+use SurrealDB\SDK\Query\BoundQuery;
 use Surqlize\Tests\Fixtures\Address;
 use Surqlize\Tests\Fixtures\Fields\UserFields;
 use Surqlize\Tests\Fixtures\HasAddress;
@@ -37,6 +39,8 @@ final class PerformanceOptimizationTest extends TestCase
 		$this->assertSame('string', $metadata->propertyTypes['name']);
 		$this->assertSame('int', $metadata->propertyTypes['age']);
 		$this->assertSame(Address::class, $metadata->propertyTypes['address']);
+		$this->assertInstanceOf(\ReflectionProperty::class, $metadata->propertyReflections['id']);
+		$this->assertInstanceOf(\ReflectionProperty::class, $metadata->propertyReflections['name']);
 	}
 
 	public function test_hydrator_ignores_unknown_keys_with_property_lookup(): void
@@ -60,6 +64,60 @@ final class PerformanceOptimizationTest extends TestCase
 		$field = (new FieldSet(User::class))->field('name');
 
 		$this->assertInstanceOf(StringField::class, $field);
+	}
+
+	public function test_model_to_array_uses_cached_reflection_and_skips_uninitialized_properties(): void
+	{
+		$user = new User();
+		$user->name = 'beau';
+		$user->age = 27;
+
+		$this->assertSame([
+			'name' => 'beau',
+			'age' => 27,
+			'address' => null,
+		], $user->toArray());
+	}
+
+	public function test_typed_callback_error_indexes_are_normalized_without_reindexing_copy(): void
+	{
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessage('index 1');
+
+		User::select(fn (FieldSet $user) => [
+			5 => $user->field('name'),
+			9 => 42,
+		]);
+	}
+
+	public function test_lazy_models_hydrates_models_without_materializing_model_list(): void
+	{
+		$executor = new PerformanceCapturingExecutor([
+			['id' => 'user:beau', 'name' => 'beau', 'age' => 27],
+		]);
+
+		$models = iterator_to_array(
+			User::select(['*'])
+				->withExecutor($executor)
+				->lazyModels(),
+		);
+
+		$this->assertCount(1, $models);
+		$this->assertInstanceOf(User::class, $models[0]);
+		$this->assertSame('beau', $models[0]->toArray()['name']);
+	}
+
+	public function test_mutation_first_model_hydrates_only_first_returned_row(): void
+	{
+		$executor = new PerformanceCapturingExecutor([
+			['id' => 'user:first', 'name' => 'first', 'age' => 1],
+			['id' => new \stdClass()],
+		]);
+
+		$model = User::createQuery(['name' => 'first', 'age' => 1], executor: $executor)->firstModel();
+
+		$this->assertInstanceOf(User::class, $model);
+		$this->assertSame('first', $model->name);
 	}
 
 	public function test_field_set_registry_clear_resets_registered_state_without_reusing_instances(): void
@@ -87,5 +145,17 @@ final class PerformanceOptimizationTest extends TestCase
 		$this->assertSame('user', EdgeEndpointResolver::endpointTable(HasAddress::class, EdgeDirection::In));
 		$this->assertSame('address', EdgeEndpointResolver::endpointTable(HasAddress::class, EdgeDirection::Out));
 		$this->assertSame('has_address', EdgeEndpointResolver::edgeTableName(HasAddress::class));
+	}
+}
+
+final class PerformanceCapturingExecutor implements QueryExecutor
+{
+	public function __construct(
+		private readonly mixed $result,
+	) {}
+
+	public function query(BoundQuery $query): mixed
+	{
+		return $this->result;
 	}
 }

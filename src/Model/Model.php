@@ -307,9 +307,7 @@ abstract class Model
         $metadata = ModelMetadata::for($this::class);
         $data = [];
 
-        foreach ($metadata->properties as $property) {
-            $reflection = new \ReflectionProperty($this, $property);
-
+        foreach ($metadata->propertyReflections as $property => $reflection) {
             if (! $reflection->isInitialized($this)) {
                 continue;
             }
@@ -352,7 +350,7 @@ abstract class Model
             return null;
         }
 
-        $reflection = new \ReflectionProperty($this, $idProperty);
+        $reflection = $metadata->propertyReflections[$idProperty];
 
         if (! $reflection->isInitialized($this)) {
             return null;

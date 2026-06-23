@@ -29,8 +29,7 @@ class GraphTraversal implements Node
         $sql = $this->direction->arrow() . Identifier::table($this->segment, 'graph traversal segment');
 
         if ($this->where !== []) {
-            $clause = new WhereClause($this->where);
-            $sql .= $clause->compileBracketed();
+            $sql .= WhereClause::compileBracketedConditions($this->where);
         }
 
         if ($this->next !== null) {
@@ -49,8 +48,7 @@ class GraphTraversal implements Node
         $sql = $this->direction->arrow() . Identifier::table($this->segment, 'graph traversal segment');
 
         if ($this->where !== []) {
-            $clause = new WhereClause($this->where);
-            $sql .= $clause->compileBracketedBound($query);
+            $sql .= WhereClause::compileBracketedConditionsBound($this->where, $query);
         }
 
         if ($this->next !== null) {

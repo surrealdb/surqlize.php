@@ -39,7 +39,9 @@ final class TypedWhereResolver
         if (is_array($result)) {
             $conditions = [];
 
-            foreach (array_values($result) as $index => $item) {
+            $index = 0;
+
+            foreach ($result as $item) {
                 if (! $item instanceof WherePredicate) {
                     throw new \InvalidArgumentException(
                         sprintf('%s must return WherePredicate values; %s found at index %d.', $context, get_debug_type($item), $index),
@@ -47,6 +49,7 @@ final class TypedWhereResolver
                 }
 
                 $conditions[] = $item;
+                $index++;
             }
 
             return $conditions;

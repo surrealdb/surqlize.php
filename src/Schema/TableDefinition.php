@@ -76,17 +76,23 @@ final class TableDefinition implements SchemaDefinition
         $definitions = [];
 
         foreach ($this->analyzers as $analyzer) {
-            $definitions = [...$definitions, ...$analyzer->definitions()];
+            foreach ($analyzer->definitions() as $definition) {
+                $definitions[] = $definition;
+            }
         }
 
         $definitions[] = trim(sprintf('DEFINE TABLE %s %s;', $this->tableName(), $this->mode ?? ''));
 
         foreach ($this->fields as $field) {
-            $definitions = [...$definitions, ...$field->fieldDefinitions()];
+            foreach ($field->fieldDefinitions() as $definition) {
+                $definitions[] = $definition;
+            }
         }
 
         foreach ($this->indexes as $index) {
-            $definitions = [...$definitions, ...$index->definitions()];
+            foreach ($index->definitions() as $definition) {
+                $definitions[] = $definition;
+            }
         }
 
         return $definitions;

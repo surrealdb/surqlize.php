@@ -67,25 +67,73 @@ final class WhereClause implements Node
         return '[WHERE ' . $this->compileConditionsBound($query) . ']';
     }
 
+    /**
+     * @param list<WherePredicate> $conditions
+     */
+    public static function compileBracketedConditions(array $conditions): string
+    {
+        if ($conditions === []) {
+            return '';
+        }
+
+        return '[WHERE ' . self::compileConditionList($conditions) . ']';
+    }
+
+    /**
+     * @param list<WherePredicate> $conditions
+     */
+    public static function compileBracketedConditionsBound(array $conditions, BoundQuery $query): string
+    {
+        if ($conditions === []) {
+            return '';
+        }
+
+        return '[WHERE ' . self::compileConditionListBound($conditions, $query) . ']';
+    }
+
     private function compileConditions(): string
     {
-		$compiled = [];
-
-		foreach ($this->conditions as $condition) {
-			$compiled[] = $condition->compile();
-		}
-
-		return implode(' AND ', $compiled);
+        return self::compileConditionList($this->conditions);
     }
 
     private function compileConditionsBound(BoundQuery $query): string
     {
-		$compiled = [];
+        return self::compileConditionListBound($this->conditions, $query);
+    }
 
-		foreach ($this->conditions as $condition) {
-			$compiled[] = $condition->compileBound($query);
-		}
+    /**
+     * @param list<WherePredicate> $conditions
+     */
+    private static function compileConditionList(array $conditions): string
+    {
+        $sql = '';
 
-		return implode(' AND ', $compiled);
+        foreach ($conditions as $condition) {
+            if ($sql !== '') {
+                $sql .= ' AND ';
+            }
+
+            $sql .= $condition->compile();
+        }
+
+        return $sql;
+    }
+
+    /**
+     * @param list<WherePredicate> $conditions
+     */
+    private static function compileConditionListBound(array $conditions, BoundQuery $query): string
+    {
+        $sql = '';
+
+        foreach ($conditions as $condition) {
+            if ($sql !== '') {
+                $sql .= ' AND ';
+            }
+
+            $sql .= $condition->compileBound($query);
+        }
+
+        return $sql;
     }
 }
