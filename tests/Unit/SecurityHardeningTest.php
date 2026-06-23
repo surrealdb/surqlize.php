@@ -15,6 +15,7 @@ use Surqlize\Model\Model;
 use Surqlize\Model\ModelMetadata;
 use Surqlize\Model\SchemaContract;
 use Surqlize\Query\Ast\GraphDirection;
+use Surqlize\Query\Fields\FieldSet;
 use Surqlize\Query\ModelQuery;
 use Surqlize\Tests\Fixtures\Address;
 use Surqlize\Tests\Fixtures\HasAddress;
@@ -89,14 +90,18 @@ final class SecurityHardeningTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        User::select(['name'])->where('name OR true', '=', 'beau')->compile();
+        User::select(['name'])
+            ->where(fn (FieldSet $fields) => $fields->field('name OR true')->eq('beau'))
+            ->compile();
     }
 
     public function test_where_rejects_unsafe_operator(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        User::select(['name'])->where('name', 'OR true', 'beau')->compile();
+        User::select(['name'])
+            ->where(fn (FieldSet $fields) => $fields->where('name', 'OR true', 'beau'))
+            ->compile();
     }
 
     public function test_for_table_rejects_unsafe_table_name(): void

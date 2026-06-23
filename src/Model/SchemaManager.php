@@ -7,6 +7,7 @@ namespace Surqlize\Model;
 use SurrealDB\SDK\Contracts\QueryExecutor;
 use SurrealDB\SDK\Query\BoundQuery;
 use Surqlize\Connection\ConnectionManager;
+use Surqlize\Schema\SchemaDefinition;
 use Surqlize\Support\ClassString;
 
 final class SchemaManager
@@ -31,6 +32,11 @@ final class SchemaManager
             $schema = new $metadata->schemaClass();
 
             foreach ($schema->definitions() as $definition) {
+                if ($definition instanceof SchemaDefinition) {
+                    $definitions = [...$definitions, ...$definition->definitions()];
+                    continue;
+                }
+
                 $definitions[] = $definition;
             }
         }

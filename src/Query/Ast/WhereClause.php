@@ -8,23 +8,23 @@ use SurrealDB\SDK\Query\BoundQuery;
 
 final class WhereClause implements Node
 {
-    /** @var list<WhereCondition> */
+    /** @var list<WherePredicate> */
     private array $conditions = [];
 
-    /** @param list<WhereCondition> $conditions */
+    /** @param list<WherePredicate> $conditions */
     public function __construct(array $conditions = [])
     {
         $this->conditions = $conditions;
     }
 
-    public function add(WhereCondition $condition): self
+    public function add(WherePredicate $condition): self
     {
         $this->conditions[] = $condition;
 
         return $this;
     }
 
-    /** @return list<WhereCondition> */
+    /** @return list<WherePredicate> */
     public function conditions(): array
     {
         return $this->conditions;

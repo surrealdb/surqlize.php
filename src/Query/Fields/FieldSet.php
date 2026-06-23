@@ -61,6 +61,15 @@ class FieldSet
         }
 
 		$type = $metadata?->propertyTypes[$name] ?? null;
+        $kind = $metadata?->propertyFieldKinds[$name] ?? null;
+
+        if ($kind !== null) {
+            return match ($kind) {
+                'search' => new SearchField($name),
+                'vector' => new VectorField($name),
+                'geometry' => new GeometryField($name),
+            };
+        }
 
         if ($type !== null && is_a($type, \DateTimeInterface::class, true)) {
             return new DateTimeField($name);

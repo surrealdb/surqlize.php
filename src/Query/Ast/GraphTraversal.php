@@ -15,7 +15,7 @@ use Surqlize\Query\Compiler\Identifier;
  */
 class GraphTraversal implements Node
 {
-    /** @param list<WhereCondition> $where */
+    /** @param list<WherePredicate> $where */
     public function __construct(
         public readonly GraphDirection $direction,
         public readonly string $segment,

@@ -6,7 +6,7 @@ namespace Surqlize\Model;
 
 interface SchemaContract
 {
-    /** @return list<string> SurrealDB DEFINE TABLE / FIELD statements for this model. */
+    /** @return list<string|\Surqlize\Schema\SchemaDefinition> SurrealDB schema definitions for this model. */
     public function definitions(): array;
 
     /** @return array<string, mixed> Optional validation rules applied before persist. */

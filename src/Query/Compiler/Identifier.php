@@ -50,6 +50,10 @@ final class Identifier
             return $operator;
         }
 
+        if (preg_match('/^<\|[1-9][0-9]*(?:,\s*[1-9][0-9]*)?\|>$/', $operator) === 1) {
+            return $operator;
+        }
+
         $normalized = strtoupper($operator);
 
         if (in_array($normalized, self::WORD_OPERATORS, true)) {

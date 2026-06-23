@@ -18,6 +18,13 @@ final class SelectStatement implements Node
         private ?OrderClause $order = null,
         private ?int $limit = null,
         private ?int $start = null,
+        private ?OmitClause $omit = null,
+        private ?WithIndexClause $withIndex = null,
+        private ?SplitClause $split = null,
+        private ?GroupClause $group = null,
+        private ?ExplainClause $explain = null,
+        private ?TimeoutClause $timeout = null,
+        private bool $tempfiles = false,
     ) {}
 
     public function fields(): FieldSelection
@@ -58,6 +65,11 @@ final class SelectStatement implements Node
     public function start(): ?int
     {
         return $this->start;
+    }
+
+    public function explain(): ?ExplainClause
+    {
+        return $this->explain;
     }
 
     public function isSelectValue(): bool
@@ -139,6 +151,70 @@ final class SelectStatement implements Node
         return $clone;
     }
 
+    public function withOmit(?OmitClause $omit): self
+    {
+        $clone = clone $this;
+        $clone->omit = $omit;
+
+        return $clone;
+    }
+
+    public function withIndex(?WithIndexClause $withIndex): self
+    {
+        $clone = clone $this;
+        $clone->withIndex = $withIndex;
+
+        return $clone;
+    }
+
+    public function withSplit(?SplitClause $split): self
+    {
+        if ($split !== null && $this->group !== null) {
+            throw new \LogicException('SPLIT and GROUP cannot be used in the same SELECT statement.');
+        }
+
+        $clone = clone $this;
+        $clone->split = $split;
+
+        return $clone;
+    }
+
+    public function withGroup(?GroupClause $group): self
+    {
+        if ($group !== null && $this->split !== null) {
+            throw new \LogicException('GROUP and SPLIT cannot be used in the same SELECT statement.');
+        }
+
+        $clone = clone $this;
+        $clone->group = $group;
+
+        return $clone;
+    }
+
+    public function withExplain(?ExplainClause $explain): self
+    {
+        $clone = clone $this;
+        $clone->explain = $explain;
+
+        return $clone;
+    }
+
+    public function withTimeout(?TimeoutClause $timeout): self
+    {
+        $clone = clone $this;
+        $clone->timeout = $timeout;
+
+        return $clone;
+    }
+
+    public function withTempfiles(bool $tempfiles = true): self
+    {
+        $clone = clone $this;
+        $clone->tempfiles = $tempfiles;
+
+        return $clone;
+    }
+
     public function compile(): string
     {
         if ($this->valueField !== null) {
@@ -147,8 +223,19 @@ final class SelectStatement implements Node
             $sql = 'SELECT ' . $this->fields->compile();
         }
 
+        if ($this->omit !== null) {
+            $compiledOmit = $this->omit->compile();
+            if ($compiledOmit !== '') {
+                $sql .= ' ' . $compiledOmit;
+            }
+        }
+
         if ($this->fromTable !== null && $this->fromTable !== '') {
             $sql .= ' FROM ' . Identifier::table($this->fromTable, 'FROM table');
+        }
+
+        if ($this->withIndex !== null) {
+            $sql .= ' ' . $this->withIndex->compile();
         }
 
         if ($this->where !== null) {
@@ -156,6 +243,14 @@ final class SelectStatement implements Node
             if ($compiledWhere !== '') {
                 $sql .= ' ' . $compiledWhere;
             }
+        }
+
+        if ($this->split !== null) {
+            $sql .= ' ' . $this->split->compile();
+        }
+
+        if ($this->group !== null) {
+            $sql .= ' ' . $this->group->compile();
         }
 
         if ($this->order !== null) {
@@ -180,6 +275,18 @@ final class SelectStatement implements Node
             }
         }
 
+        if ($this->timeout !== null) {
+            $sql .= ' ' . $this->timeout->compile();
+        }
+
+        if ($this->tempfiles) {
+            $sql .= ' TEMPFILES';
+        }
+
+        if ($this->explain !== null) {
+            $sql .= ' ' . $this->explain->compile();
+        }
+
         return $sql;
     }
 
@@ -193,8 +300,19 @@ final class SelectStatement implements Node
             $query->append('SELECT ' . $this->fields->compileBound($query));
         }
 
+        if ($this->omit !== null) {
+            $compiledOmit = $this->omit->compile();
+            if ($compiledOmit !== '') {
+                $query->append(' ' . $compiledOmit);
+            }
+        }
+
         if ($this->fromTable !== null && $this->fromTable !== '') {
             $query->append(' FROM ' . Identifier::table($this->fromTable, 'FROM table'));
+        }
+
+        if ($this->withIndex !== null) {
+            $query->append(' ' . $this->withIndex->compile());
         }
 
         if ($this->where !== null) {
@@ -202,6 +320,14 @@ final class SelectStatement implements Node
             if ($compiledWhere !== '') {
                 $query->append(' ' . $compiledWhere);
             }
+        }
+
+        if ($this->split !== null) {
+            $query->append(' ' . $this->split->compile());
+        }
+
+        if ($this->group !== null) {
+            $query->append(' ' . $this->group->compile());
         }
 
         if ($this->order !== null) {
@@ -224,6 +350,18 @@ final class SelectStatement implements Node
             if ($compiledFetch !== '') {
                 $query->append(' ' . $compiledFetch);
             }
+        }
+
+        if ($this->timeout !== null) {
+            $query->append(' ' . $this->timeout->compile());
+        }
+
+        if ($this->tempfiles) {
+            $query->append(' TEMPFILES');
+        }
+
+        if ($this->explain !== null) {
+            $query->append(' ' . $this->explain->compile());
         }
 
         return $query;

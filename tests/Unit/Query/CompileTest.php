@@ -9,7 +9,6 @@ use Surqlize\Edge\GraphSelectField;
 use Surqlize\Model\Model;
 use Surqlize\Query\Fields\FieldSet;
 use Surqlize\Query\ModelQuery;
-use Surqlize\Query\Operator;
 use Surqlize\Tests\Fixtures\Address;
 use Surqlize\Tests\Fixtures\HasAddress;
 use Surqlize\Tests\Fixtures\User;
@@ -23,12 +22,12 @@ final class CompileTest extends TestCase
 {
     public function test_simple_select_with_where(): void
     {
-        self::requireApi(Model::class, Operator::class);
+        self::requireApi(Model::class);
         self::requireMethod(ModelQuery::class, 'where');
 
         $this->assertSame(
             'SELECT name FROM user WHERE name = "beau"',
-            User::select(['name'])->where('name', Operator::EQUALS, 'beau')->compile(),
+            User::select(['name'])->where(fn ($user) => $user->name->eq('beau'))->compile(),
         );
     }
 
@@ -99,7 +98,11 @@ final class CompileTest extends TestCase
 
         $this->assertSame(
             'SELECT name FROM user WHERE age > 27',
-            (new HasAddress())->in()->select(['name'])->where('age', '>', 27)->compile(),
+            (new HasAddress())
+                ->in()
+                ->select(['name'])
+                ->where(fn (FieldSet $user) => $user->field('age')->gt(27))
+                ->compile(),
         );
     }
 
@@ -121,7 +124,11 @@ final class CompileTest extends TestCase
 
         $this->assertSame(
             'SELECT VALUE name FROM user WHERE age > 27',
-            (new HasAddress())->in()->selectValue('name')->where('age', '>', 27)->compile(),
+            (new HasAddress())
+                ->in()
+                ->selectValue('name')
+                ->where(fn (FieldSet $user) => $user->field('age')->gt(27))
+                ->compile(),
         );
     }
 
@@ -139,7 +146,7 @@ final class CompileTest extends TestCase
 
     public function test_graph_select_with_fetch(): void
     {
-        self::requireApi(Model::class, Edge::class, Operator::class);
+        self::requireApi(Model::class, Edge::class);
         self::requireMethod(ModelQuery::class, 'where');
         self::requireMethod(ModelQuery::class, 'fetch');
 
@@ -148,11 +155,11 @@ final class CompileTest extends TestCase
             User::select([
                 'name',
                 GraphSelectField::fromEdge(HasAddress::class, \Surqlize\Query\Ast\GraphDirection::Out)
-                    ->out(Address::class, fn ($query) => $query->where('postcode', 'INCLUDES', '24'))
+                    ->out(Address::class, fn ($address) => $address->postcode->includes('24'))
                     ->as('address')
                     ->fetch(),
             ])
-                ->where('name', Operator::EQUALS, 'beau')
+                ->where(fn ($user) => $user->name->eq('beau'))
                 ->fetch('address')
                 ->compile(),
         );

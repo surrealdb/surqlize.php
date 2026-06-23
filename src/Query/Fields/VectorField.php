@@ -4,34 +4,30 @@ declare(strict_types=1);
 
 namespace Surqlize\Query\Fields;
 
-use Surqlize\Query\Compiler\Identifier;
-use Surqlize\Query\Compiler\ValueFormatter;
+use Surqlize\Query\Ast\ExpressionProjection;
+use Surqlize\Query\Ast\WhereCondition;
 
 /** Field reference for vector embedding fields backed by vector indexes. */
 final class VectorField extends Field
 {
     /** @param list<int|float> $vector */
-    public function distanceAsc(array $vector, string $metric = 'cosine'): OrderExpression
+    public function nearest(array $vector, int $k, ?int $effort = null): WhereCondition
     {
-        return OrderExpression::expression($this->distanceExpression($vector, $metric), OrderDirection::Ascending);
+        if ($k < 1) {
+            throw new \InvalidArgumentException('Vector nearest k must be greater than zero.');
+        }
+
+        if ($effort !== null && $effort < 1) {
+            throw new \InvalidArgumentException('Vector nearest effort must be greater than zero.');
+        }
+
+        $operator = $effort === null ? sprintf('<|%d|>', $k) : sprintf('<|%d, %d|>', $k, $effort);
+
+        return $this->condition($operator, $vector);
     }
 
-    /** @param list<int|float> $vector */
-    public function distanceDesc(array $vector, string $metric = 'cosine'): OrderExpression
+    public function knnDistance(): ExpressionProjection
     {
-        return OrderExpression::expression($this->distanceExpression($vector, $metric), OrderDirection::Descending);
-    }
-
-    /** @param list<int|float> $vector */
-    private function distanceExpression(array $vector, string $metric): string
-    {
-        $metric = Identifier::alias($metric, 'vector distance metric');
-
-        return sprintf(
-            'vector::distance::%s(%s, %s)',
-            $metric,
-            Identifier::field($this->path(), 'vector field'),
-            ValueFormatter::format($vector),
-        );
+        return new ExpressionProjection('vector::distance::knn()');
     }
 }

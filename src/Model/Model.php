@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Surqlize\Model;
 
 use SurrealDB\SDK\Contracts\QueryExecutor;
+use Surqlize\Model\Exception\ModelNotFoundException;
 use Surqlize\Query\ModelQuery;
 use Surqlize\Query\ModelMutationQuery;
 use Surqlize\Query\Fields\FieldSet;
 use Surqlize\Query\Fields\FieldSetRegistry;
+use Surqlize\Query\Fields\Projection;
 use Surqlize\Relate\RelateBuilder;
 use SurrealDB\SDK\Types\RecordId;
 
@@ -24,6 +26,7 @@ abstract class Model
 
     /**
      * @param list<string|mixed>|\Closure $fields
+     * @phpstan-param list<string|\Surqlize\Query\Ast\GraphTraversal|\Surqlize\Query\Ast\SelectProjection>|\Closure(FieldSet): (list<\Surqlize\Query\Fields\Field|string|\Surqlize\Query\Ast\GraphTraversal|\Surqlize\Query\Ast\SelectProjection>|\Surqlize\Query\Fields\Field|string|\Surqlize\Query\Ast\GraphTraversal|\Surqlize\Query\Ast\SelectProjection) $fields
      *
      * @return ModelQuery<FieldSet>
      */
@@ -33,6 +36,14 @@ abstract class Model
         $class = static::class;
 
         return ModelQuery::for($class, $fields);
+    }
+
+    /**
+     * @return ModelQuery<FieldSet>
+     */
+    public static function query(): ModelQuery
+    {
+        return static::select(['*']);
     }
 
     /**
@@ -139,6 +150,104 @@ abstract class Model
             ->where($field, $operator, $value);
     }
 
+    /**
+     * @deprecated Passing string field names is kept for migration only. Prefer typed callbacks.
+     *
+     * @phpstan-param string|\Closure(FieldSet): (\Surqlize\Query\Ast\WherePredicate|list<\Surqlize\Query\Ast\WherePredicate>) $field
+     */
+    public static function deleteWhere(string|\Closure $field, \Surqlize\Query\Operator|string|null $operator = null, mixed $value = null, ?QueryExecutor $executor = null): ModelMutationQuery
+    {
+        /** @var class-string<static> $class */
+        $class = static::class;
+        $metadata = ModelMetadata::for($class);
+
+        return ModelMutationQuery::delete($class, $metadata->tableName, $executor)
+            ->where($field, $operator, $value);
+    }
+
+    /**
+     * @return list<static>
+     */
+    public static function all(?QueryExecutor $executor = null): array
+    {
+        $query = static::query();
+
+        if ($executor !== null) {
+            $query = $query->withExecutor($executor);
+        }
+
+        /** @var list<static> $models */
+        $models = $query->collectModels();
+
+        return $models;
+    }
+
+    public static function find(mixed $id, ?QueryExecutor $executor = null): ?static
+    {
+        /** @var class-string<static> $class */
+        $class = static::class;
+        $metadata = ModelMetadata::for($class);
+
+        if ($metadata->idProperty === null) {
+            throw new \LogicException(sprintf('Cannot find model "%s" because it has no #[Id] property.', $class));
+        }
+
+        $query = static::query()
+            ->where(fn (FieldSet $fields) => $fields->field($metadata->idProperty)->eq(self::recordIdFrom($id, $metadata)))
+            ->limit(1);
+
+        if ($executor !== null) {
+            $query = $query->withExecutor($executor);
+        }
+
+        $model = $query->first();
+
+        return $model instanceof static ? $model : null;
+    }
+
+    public static function findOrFail(mixed $id, ?QueryExecutor $executor = null): static
+    {
+        return static::find($id, $executor) ?? throw new ModelNotFoundException(static::class, $id);
+    }
+
+    /**
+     * @phpstan-param (\Closure(FieldSet): (\Surqlize\Query\Ast\WherePredicate|list<\Surqlize\Query\Ast\WherePredicate>))|null $where
+     */
+    public static function count(?\Closure $where = null, ?QueryExecutor $executor = null): int
+    {
+        $query = static::select([Projection::count()->as('count')])->groupAll();
+
+        if ($where !== null) {
+            $query = $query->where($where);
+        }
+
+        if ($executor !== null) {
+            $query = $query->withExecutor($executor);
+        }
+
+        $row = $query->collect()[0] ?? null;
+
+        return is_array($row) && isset($row['count']) ? (int) $row['count'] : 0;
+    }
+
+    /**
+     * @phpstan-param (\Closure(FieldSet): (\Surqlize\Query\Ast\WherePredicate|list<\Surqlize\Query\Ast\WherePredicate>))|null $where
+     */
+    public static function exists(?\Closure $where = null, ?QueryExecutor $executor = null): bool
+    {
+        $query = static::select(['id'])->limit(1);
+
+        if ($where !== null) {
+            $query = $query->where($where);
+        }
+
+        if ($executor !== null) {
+            $query = $query->withExecutor($executor);
+        }
+
+        return $query->collect() !== [];
+    }
+
     public function save(?QueryExecutor $executor = null): static
     {
         $class = $this::class;
@@ -172,6 +281,24 @@ abstract class Model
         }
 
         return ModelMutationQuery::delete($class, $recordId, $executor)->execute();
+    }
+
+    public function refresh(?QueryExecutor $executor = null): static
+    {
+        $metadata = ModelMetadata::for($this::class);
+        $recordId = $this->recordIdForPersistence($metadata);
+
+        if (! $recordId instanceof RecordId) {
+            throw new \LogicException(sprintf('Cannot refresh model "%s" before its #[Id] property is a RecordId.', $this::class));
+        }
+
+        $fresh = static::findOrFail($recordId, $executor);
+
+        foreach ($fresh->toArray() as $property => $value) {
+            $this->{$property} = $fresh->{$property};
+        }
+
+        return $this;
     }
 
     /** @return array<string, mixed> */

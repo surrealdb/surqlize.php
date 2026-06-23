@@ -7,7 +7,7 @@ namespace Surqlize\Edge;
 use Surqlize\Model\ModelMetadata;
 use Surqlize\Query\Ast\GraphDirection;
 use Surqlize\Query\Ast\GraphTraversal;
-use Surqlize\Query\Ast\WhereCondition;
+use Surqlize\Query\Ast\WherePredicate;
 use Surqlize\Query\Fields\FieldSetRegistry;
 use Surqlize\Query\Fields\TypedWhereResolver;
 
@@ -18,7 +18,7 @@ final class GraphSelectField extends GraphTraversal
 {
     private bool $shouldFetch = false;
 
-    /** @param list<WhereCondition> $where */
+    /** @param list<WherePredicate> $where */
     public function __construct(
         GraphDirection $direction,
         string $segment,
@@ -103,7 +103,7 @@ final class GraphSelectField extends GraphTraversal
     /**
      * @param class-string<\Surqlize\Model\Model> $modelClass
      *
-     * @return list<WhereCondition>
+     * @return list<WherePredicate>
      */
     private function resolveWhere(callable $where, string $modelClass): array
     {

@@ -8,11 +8,17 @@ use SurrealDB\SDK\Contracts\QueryExecutor;
 use SurrealDB\SDK\Query\BoundQuery;
 use Surqlize\Query\Ast\FetchClause;
 use Surqlize\Query\Ast\FieldSelection;
+use Surqlize\Query\Ast\GroupClause;
 use Surqlize\Query\Ast\GraphTraversal;
+use Surqlize\Query\Ast\ExplainClause;
+use Surqlize\Query\Ast\OmitClause;
 use Surqlize\Query\Ast\OrderClause;
 use Surqlize\Query\Ast\SelectStatement;
+use Surqlize\Query\Ast\SplitClause;
+use Surqlize\Query\Ast\TimeoutClause;
 use Surqlize\Query\Ast\WhereClause;
-use Surqlize\Query\Ast\WhereCondition;
+use Surqlize\Query\Ast\SelectProjection;
+use Surqlize\Query\Ast\WithIndexClause;
 use Surqlize\Query\Compiler\SurrealQlCompiler;
 use Surqlize\Query\Concerns\CompilesQueries;
 use Surqlize\Query\Fields\FieldSet;
@@ -50,7 +56,8 @@ final class ModelQuery implements CompilesQueries
 
     /**
      * @param class-string $modelClass
-     * @param list<string|GraphTraversal>|\Closure $fields
+     * @param list<string|GraphTraversal|SelectProjection>|\Closure $fields
+     * @phpstan-param list<string|GraphTraversal|SelectProjection>|\Closure(FieldSet): (list<\Surqlize\Query\Fields\Field|string|GraphTraversal|SelectProjection>|\Surqlize\Query\Fields\Field|string|GraphTraversal|SelectProjection) $fields
      *
      * @return self<FieldSet>
      */
@@ -65,8 +72,8 @@ final class ModelQuery implements CompilesQueries
      * @template T of FieldSet
      * @param class-string $modelClass
      * @param T $fieldSet
-     * @param list<string|GraphTraversal>|\Closure $fields
-     * @phpstan-param list<string|GraphTraversal>|\Closure(T): (list<\Surqlize\Query\Fields\Field|string|GraphTraversal>|\Surqlize\Query\Fields\Field|string|GraphTraversal) $fields
+     * @param list<string|GraphTraversal|SelectProjection>|\Closure $fields
+     * @phpstan-param list<string|GraphTraversal|SelectProjection>|\Closure(T): (list<\Surqlize\Query\Fields\Field|string|GraphTraversal|SelectProjection>|\Surqlize\Query\Fields\Field|string|GraphTraversal|SelectProjection) $fields
      *
      * @return self<T>
      */
@@ -89,7 +96,7 @@ final class ModelQuery implements CompilesQueries
     }
 
     /**
-     * @param list<string|GraphTraversal> $fields
+     * @param list<string|GraphTraversal|SelectProjection> $fields
      */
     private static function fieldsContainGraph(array $fields): bool
     {
@@ -141,7 +148,7 @@ final class ModelQuery implements CompilesQueries
 
     /**
      * @param class-string|null $modelClass
-     * @param list<string|GraphTraversal>|\Closure $fields
+     * @param list<string|GraphTraversal|SelectProjection>|\Closure $fields
      *
      * @return self<\Surqlize\Query\Fields\FieldSet>
      */
@@ -229,8 +236,8 @@ final class ModelQuery implements CompilesQueries
     }
 
     /**
-     * @param list<string|GraphTraversal>|\Closure $fields
-     * @phpstan-param list<string|GraphTraversal>|\Closure(TFields): (list<\Surqlize\Query\Fields\Field|string|GraphTraversal>|\Surqlize\Query\Fields\Field|string|GraphTraversal) $fields
+     * @param list<string|GraphTraversal|SelectProjection>|\Closure $fields
+     * @phpstan-param list<string|GraphTraversal|SelectProjection>|\Closure(TFields): (list<\Surqlize\Query\Fields\Field|string|GraphTraversal|SelectProjection>|\Surqlize\Query\Fields\Field|string|GraphTraversal|SelectProjection) $fields
      *
      * @return self<TFields>
      */
@@ -258,30 +265,18 @@ final class ModelQuery implements CompilesQueries
     }
 
     /**
-     * @deprecated Passing string field names is kept for migration only. Prefer typed callbacks.
-     *
-     * @phpstan-param string|\Closure(TFields): (\Surqlize\Query\Ast\WhereCondition|list<\Surqlize\Query\Ast\WhereCondition>) $field
+     * @phpstan-param \Closure(TFields): (\Surqlize\Query\Ast\WherePredicate|list<\Surqlize\Query\Ast\WherePredicate>) $field
      *
      * @return self<TFields>
      */
-    public function where(string|\Closure $field, Operator|string|null $operator = null, mixed $value = null): self
+    public function where(\Closure $field): self
     {
         $where = $this->ast->where() ?? new WhereClause();
         $where = clone $where;
 
-        if ($field instanceof \Closure) {
-            foreach (TypedWhereResolver::resolveFor($this->fieldSet, $field) as $condition) {
-                $where->add($condition);
-            }
-
-            return $this->withAst($this->ast->withWhere($where));
+        foreach (TypedWhereResolver::resolveFor($this->fieldSet, $field) as $condition) {
+            $where->add($condition);
         }
-
-        if ($operator === null) {
-            throw new \InvalidArgumentException('Legacy string where() calls require an operator.');
-        }
-
-        $where->add(new WhereCondition($field, $operator, $value));
 
         return $this->withAst($this->ast->withWhere($where));
     }
@@ -323,6 +318,92 @@ final class ModelQuery implements CompilesQueries
     }
 
     /**
+     * @phpstan-param string|list<string>|\Closure(TFields): (\Surqlize\Query\Fields\Field|list<\Surqlize\Query\Fields\Field>) $fields
+     *
+     * @return self<TFields>
+     */
+    public function omit(string|array|\Closure $fields): self
+    {
+        $fields = $this->resolveFieldPaths($fields, 'omit()');
+
+        return $this->withAst($this->ast->withOmit(new OmitClause($fields)));
+    }
+
+    /**
+     * @phpstan-param string|list<string>|\Closure(TFields): (\Surqlize\Query\Fields\Field|list<\Surqlize\Query\Fields\Field>) $fields
+     *
+     * @return self<TFields>
+     */
+    public function split(string|array|\Closure $fields): self
+    {
+        $fields = $this->resolveFieldPaths($fields, 'split()');
+
+        return $this->withAst($this->ast->withSplit(new SplitClause($fields)));
+    }
+
+    /**
+     * @phpstan-param string|list<string>|\Closure(TFields): (\Surqlize\Query\Fields\Field|list<\Surqlize\Query\Fields\Field>) $fields
+     *
+     * @return self<TFields>
+     */
+    public function groupBy(string|array|\Closure $fields): self
+    {
+        $fields = $this->resolveFieldPaths($fields, 'groupBy()');
+
+        return $this->withAst($this->ast->withGroup(GroupClause::by($fields)));
+    }
+
+    /**
+     * @return self<TFields>
+     */
+    public function groupAll(): self
+    {
+        return $this->withAst($this->ast->withGroup(GroupClause::all()));
+    }
+
+    /**
+     * @param string|list<string> $indexes
+     *
+     * @return self<TFields>
+     */
+    public function withIndex(string|array $indexes): self
+    {
+        return $this->withAst($this->ast->withIndex(WithIndexClause::indexes(is_array($indexes) ? $indexes : [$indexes])));
+    }
+
+    /**
+     * @return self<TFields>
+     */
+    public function withoutIndex(): self
+    {
+        return $this->withAst($this->ast->withIndex(WithIndexClause::noIndex()));
+    }
+
+    /**
+     * @return self<TFields>
+     */
+    public function explain(bool $full = false): self
+    {
+        return $this->withAst($this->ast->withExplain(new ExplainClause($full)));
+    }
+
+    /**
+     * @return self<TFields>
+     */
+    public function timeout(int $amount, string $unit = 's'): self
+    {
+        return $this->withAst($this->ast->withTimeout(new TimeoutClause($amount, strtolower($unit))));
+    }
+
+    /**
+     * @return self<TFields>
+     */
+    public function tempFiles(): self
+    {
+        return $this->withAst($this->ast->withTempfiles());
+    }
+
+    /**
      * @return self<TFields>
      */
     public function limit(int $limit): self
@@ -336,6 +417,18 @@ final class ModelQuery implements CompilesQueries
     public function start(int $offset): self
     {
         return $this->withAst($this->ast->withStart($offset));
+    }
+
+    /**
+     * @return self<TFields>
+     */
+    public function page(int $page, int $perPage): self
+    {
+        if ($page < 1) {
+            throw new \InvalidArgumentException('Page number must be greater than zero.');
+        }
+
+        return $this->limit($perPage)->start(($page - 1) * $perPage);
     }
 
     /**
@@ -448,6 +541,14 @@ final class ModelQuery implements CompilesQueries
     }
 
     /**
+     * @return list<array<string, mixed>>
+     */
+    public function explainPlan(): array
+    {
+        return $this->explain()->collect();
+    }
+
+    /**
      * @return self<TFields>
      */
     private function withAst(SelectStatement $ast): self
@@ -483,6 +584,20 @@ final class ModelQuery implements CompilesQueries
         }
 
         return [new OrderExpression($order, $this->normalizeOrderDirection($direction))];
+    }
+
+    /**
+     * @phpstan-param string|list<string>|\Closure(TFields): (\Surqlize\Query\Fields\Field|list<\Surqlize\Query\Fields\Field>) $fields
+     *
+     * @return list<string>
+     */
+    private function resolveFieldPaths(string|array|\Closure $fields, string $operation): array
+    {
+        if ($fields instanceof \Closure) {
+            return TypedFieldResolver::resolveFieldPathsFor($this->fieldSet, $fields, $operation);
+        }
+
+        return is_array($fields) ? $fields : [$fields];
     }
 
     private function normalizeOrderDirection(OrderDirection|string $direction): OrderDirection

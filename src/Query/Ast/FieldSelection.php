@@ -9,16 +9,16 @@ use Surqlize\Query\Compiler\Identifier;
 
 final class FieldSelection implements Node
 {
-    /** @var list<string|GraphTraversal> */
+    /** @var list<string|GraphTraversal|SelectProjection> */
     private array $fields;
 
-    /** @param list<string|GraphTraversal> $fields */
+    /** @param list<string|GraphTraversal|SelectProjection> $fields */
     public function __construct(array $fields = ['*'])
     {
         $this->fields = $fields;
     }
 
-    /** @return list<string|GraphTraversal> */
+    /** @return list<string|GraphTraversal|SelectProjection> */
     public function fields(): array
     {
         return $this->fields;
@@ -33,9 +33,11 @@ final class FieldSelection implements Node
         $compiled = [];
 
         foreach ($this->fields as $index => $field) {
-            $compiled[] = is_string($field)
-                ? Identifier::selection($field, sprintf('SELECT field at index %d', $index))
-                : $field->compile();
+            $compiled[] = match (true) {
+                is_string($field) => Identifier::selection($field, sprintf('SELECT field at index %d', $index)),
+                $field instanceof SelectProjection => $field->compile(),
+                default => $field->compile(),
+            };
         }
 
         return implode(', ', $compiled);
@@ -50,9 +52,11 @@ final class FieldSelection implements Node
         $compiled = [];
 
         foreach ($this->fields as $index => $field) {
-            $compiled[] = is_string($field)
-                ? Identifier::selection($field, sprintf('SELECT field at index %d', $index))
-                : $field->compileBound($query);
+            $compiled[] = match (true) {
+                is_string($field) => Identifier::selection($field, sprintf('SELECT field at index %d', $index)),
+                $field instanceof SelectProjection => $field->compileBound(),
+                default => $field->compileBound($query),
+            };
         }
 
         return implode(', ', $compiled);

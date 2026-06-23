@@ -22,7 +22,7 @@ class HasAddress extends EdgeModel
 	{
 		return $this->in()
 			->select(["name"])
-			->where("age", ">", 27)
+			->where(fn ($user) => $user->field("age")->gt(27))
 			->collect();
 	}
 
@@ -33,7 +33,7 @@ class HasAddress extends EdgeModel
 	{
 		return $this->in()
 			->selectValue("name")
-			->where("age", ">", 27)
+			->where(fn ($user) => $user->field("age")->gt(27))
 			->collect();
 	}
 }

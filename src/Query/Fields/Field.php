@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Surqlize\Query\Fields;
 
+use Surqlize\Query\Ast\AliasedProjection;
 use Surqlize\Query\Ast\WhereCondition;
 use Surqlize\Query\Operator;
 
@@ -71,6 +72,11 @@ class Field implements \Stringable
     public function desc(): OrderExpression
     {
         return new OrderExpression($this->path, OrderDirection::Descending);
+    }
+
+    public function as(string $alias): AliasedProjection
+    {
+        return new AliasedProjection($this->path, $alias);
     }
 
     public function condition(Operator|string $operator, mixed $value): WhereCondition

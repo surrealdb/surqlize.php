@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Surqlize\Query\Fields;
 
+use Surqlize\Query\Ast\ExpressionProjection;
+use Surqlize\Query\Ast\ExpressionWhereCondition;
 use Surqlize\Query\Ast\WhereCondition;
 use Surqlize\Query\Compiler\Identifier;
 use Surqlize\Query\Compiler\ValueFormatter;
@@ -24,16 +26,22 @@ final class GeometryField extends Field
         return $this->condition(Operator::INTERSECTS, $geometry);
     }
 
-    /** @param array<string, mixed>|list<float|int> $point */
-    public function distanceAsc(array $point): OrderExpression
+    /** @param array<string, mixed>|list<float|int> $geometry */
+    public function containsGeometry(array $geometry): WhereCondition
     {
-        return OrderExpression::expression($this->distanceExpression($point), OrderDirection::Ascending);
+        return $this->condition(Operator::CONTAINS, $geometry);
     }
 
     /** @param array<string, mixed>|list<float|int> $point */
-    public function distanceDesc(array $point): OrderExpression
+    public function withinMeters(array $point, int|float $meters): ExpressionWhereCondition
     {
-        return OrderExpression::expression($this->distanceExpression($point), OrderDirection::Descending);
+        return new ExpressionWhereCondition($this->distanceExpression($point), Operator::LESS_THAN_OR_EQUAL, $meters);
+    }
+
+    /** @param array<string, mixed>|list<float|int> $point */
+    public function distanceTo(array $point): ExpressionProjection
+    {
+        return new ExpressionProjection($this->distanceExpression($point));
     }
 
     /** @param array<string, mixed>|list<float|int> $point */

@@ -137,7 +137,7 @@ final class ModelMutationQuery implements CompilesQueries
     /**
      * @deprecated Passing string field names is kept for migration only. Prefer typed callbacks.
      *
-     * @phpstan-param string|\Closure(FieldSet): (\Surqlize\Query\Ast\WhereCondition|list<\Surqlize\Query\Ast\WhereCondition>) $field
+     * @phpstan-param string|\Closure(FieldSet): (\Surqlize\Query\Ast\WherePredicate|list<\Surqlize\Query\Ast\WherePredicate>) $field
      */
     public function where(string|\Closure $field, Operator|string|null $operator = null, mixed $value = null): self
     {

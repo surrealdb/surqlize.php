@@ -11,6 +11,7 @@ use Surqlize\Attributes\Id;
 use Surqlize\Attributes\Schema;
 use Surqlize\Attributes\Table;
 use Surqlize\Connection\ConnectionManager;
+use Surqlize\Model\Exception\ModelNotFoundException;
 use Surqlize\Model\Model;
 use Surqlize\Model\ModelMetadata;
 use Surqlize\Model\SchemaContract;
@@ -127,6 +128,33 @@ final class OrmRoadmapFeatureTest extends TestCase
         $this->assertInstanceOf(ArrayField::class, $fields->field('tags'));
         $this->assertInstanceOf(ObjectField::class, $fields->field('meta'));
         $this->assertInstanceOf(RecordLinkField::class, $fields->field('address'));
+    }
+
+    public function test_model_find_count_exists_and_refresh_use_model_scoped_queries(): void
+    {
+        $findExecutor = new CapturingExecutor([
+            ['id' => 'user:beau', 'name' => 'beau', 'age' => 27],
+        ]);
+
+        $user = User::find('beau', $findExecutor);
+
+        $this->assertInstanceOf(User::class, $user);
+        $this->assertSame('SELECT * FROM user WHERE id = $bind_0 LIMIT 1', $findExecutor->queries[0]->query);
+
+        $countExecutor = new CapturingExecutor([['count' => 2]]);
+        $this->assertSame(2, User::count(fn ($user) => $user->field('age')->gte(18), $countExecutor));
+        $this->assertSame('SELECT count() AS count FROM user WHERE age >= $bind_0 GROUP ALL', $countExecutor->queries[0]->query);
+
+        $existsExecutor = new CapturingExecutor([['id' => 'user:beau']]);
+        $this->assertTrue(User::exists(fn ($user) => $user->field('name')->eq('beau'), $existsExecutor));
+        $this->assertSame('SELECT id FROM user WHERE name = $bind_0 LIMIT 1', $existsExecutor->queries[0]->query);
+    }
+
+    public function test_find_or_fail_throws_model_not_found_exception(): void
+    {
+        $this->expectException(ModelNotFoundException::class);
+
+        User::findOrFail('missing', new CapturingExecutor([]));
     }
 }
 

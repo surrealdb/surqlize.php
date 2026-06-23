@@ -13,11 +13,14 @@ use Surqlize\Query\Fields\ArrayField;
 use Surqlize\Query\Fields\BooleanField;
 use Surqlize\Query\Fields\DateTimeField;
 use Surqlize\Query\Fields\Field;
+use Surqlize\Query\Fields\GeometryField;
 use Surqlize\Query\Fields\ObjectField;
 use Surqlize\Query\Fields\NumericField;
 use Surqlize\Query\Fields\RecordIdField;
 use Surqlize\Query\Fields\RecordLinkField;
+use Surqlize\Query\Fields\SearchField;
 use Surqlize\Query\Fields\StringField;
+use Surqlize\Query\Fields\VectorField;
 
 final class FieldTypeMapper
 {
@@ -28,6 +31,16 @@ final class FieldTypeMapper
     {
         if ($metadata->idProperty === $property->getName()) {
             return RecordIdField::class;
+        }
+
+        $kind = $metadata->propertyFieldKinds[$property->getName()] ?? null;
+
+        if ($kind !== null) {
+            return match ($kind) {
+                'search' => SearchField::class,
+                'vector' => VectorField::class,
+                'geometry' => GeometryField::class,
+            };
         }
 
         $type = $property->getType();

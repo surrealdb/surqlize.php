@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace Surqlize\Query\Fields;
 
 use Surqlize\Query\Ast\GraphTraversal;
+use Surqlize\Query\Ast\SelectProjection;
 
 final class TypedFieldResolver
 {
     /**
      * @param class-string|string $modelClass
      *
-     * @return list<string|GraphTraversal>
+     * @return list<string|GraphTraversal|SelectProjection>
      */
     public static function resolveSelection(string $modelClass, \Closure $callback): array
     {
@@ -19,7 +20,7 @@ final class TypedFieldResolver
     }
 
     /**
-     * @return list<string|GraphTraversal>
+     * @return list<string|GraphTraversal|SelectProjection>
      */
     public static function resolveSelectionFor(FieldSet $fields, \Closure $callback): array
     {
@@ -133,19 +134,47 @@ final class TypedFieldResolver
 		return $resolved;
     }
 
-    private static function fieldName(mixed $field, string $operation, FieldSet $fields, int $index): string|GraphTraversal
+    /**
+     * @return list<string>
+     */
+    public static function resolveFieldPathsFor(FieldSet $fields, \Closure $callback, string $operation): array
+    {
+        $result = $callback($fields);
+        $items = is_array($result) ? $result : [$result];
+        $resolved = [];
+
+        foreach (array_values($items) as $index => $item) {
+            if (! $item instanceof Field) {
+                throw new \InvalidArgumentException(
+                    sprintf(
+                        '%s typed callback for %s must return Field values; %s found at index %d.',
+                        $operation,
+                        self::fieldSetContext($fields),
+                        get_debug_type($item),
+                        $index,
+                    ),
+                );
+            }
+
+            $resolved[] = $item->path();
+        }
+
+        return $resolved;
+    }
+
+    private static function fieldName(mixed $field, string $operation, FieldSet $fields, int $index): string|GraphTraversal|SelectProjection
     {
         if ($field instanceof Field) {
             return $field->path();
         }
 
-        if (is_string($field) || $field instanceof GraphTraversal) {
+        if (is_string($field) || $field instanceof GraphTraversal || $field instanceof SelectProjection) {
             return $field;
         }
 
         throw new \InvalidArgumentException(
             sprintf(
-                '%s typed callback for %s must return Field, string, or GraphTraversal values; %s found at index %d.',
+                '%s typed callback for %s must return Field, string, GraphTraversal, or SelectProjection values; %s found at index %d.',
                 $operation,
                 self::fieldSetContext($fields),
                 get_debug_type($field),

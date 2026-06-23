@@ -25,7 +25,7 @@ final class GraphCompileTest extends TestCase
         self::requireApi(Edge::class, Model::class);
 
         $field = GraphSelectField::fromEdge(HasAddress::class, GraphDirection::Out)
-            ->out(Address::class, fn ($query) => $query->where('postcode', 'INCLUDES', '24'))
+            ->out(Address::class, fn ($address) => $address->postcode->includes('24'))
             ->as('address')
             ->fetch();
 

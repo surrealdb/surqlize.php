@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace Surqlize\Query\Fields;
 
 use Surqlize\Query\Ast\WhereCondition;
+use Surqlize\Query\Ast\WherePredicate;
 
 final class TypedWhereResolver
 {
     /**
      * @param class-string|string $modelClass
      *
-     * @return list<WhereCondition>
+     * @return list<WherePredicate>
      */
     public static function resolve(string $modelClass, \Closure $callback): array
     {
@@ -19,7 +20,7 @@ final class TypedWhereResolver
     }
 
     /**
-     * @return list<WhereCondition>
+     * @return list<WherePredicate>
      */
     public static function resolveFor(FieldSet $fields, \Closure $callback): array
     {
@@ -27,11 +28,11 @@ final class TypedWhereResolver
     }
 
     /**
-     * @return list<WhereCondition>
+     * @return list<WherePredicate>
      */
     public static function normalize(mixed $result, string $context = 'typed where callback'): array
     {
-        if ($result instanceof WhereCondition) {
+        if ($result instanceof WherePredicate) {
             return [$result];
         }
 
@@ -39,9 +40,9 @@ final class TypedWhereResolver
             $conditions = [];
 
             foreach (array_values($result) as $index => $item) {
-                if (! $item instanceof WhereCondition) {
+                if (! $item instanceof WherePredicate) {
                     throw new \InvalidArgumentException(
-                        sprintf('%s must return WhereCondition values; %s found at index %d.', $context, get_debug_type($item), $index),
+                        sprintf('%s must return WherePredicate values; %s found at index %d.', $context, get_debug_type($item), $index),
                     );
                 }
 
@@ -52,7 +53,7 @@ final class TypedWhereResolver
         }
 
         throw new \InvalidArgumentException(
-            sprintf('%s must return a WhereCondition or list of WhereCondition; %s returned.', $context, get_debug_type($result)),
+            sprintf('%s must return a WherePredicate or list of WherePredicate; %s returned.', $context, get_debug_type($result)),
         );
     }
 

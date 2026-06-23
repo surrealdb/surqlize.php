@@ -9,7 +9,7 @@ use Surqlize\Query\Compiler\ValueFormatter;
 use Surqlize\Query\Compiler\Identifier;
 use Surqlize\Query\Operator;
 
-final readonly class WhereCondition
+final readonly class WhereCondition implements WherePredicate
 {
     public function __construct(
         public string $field,

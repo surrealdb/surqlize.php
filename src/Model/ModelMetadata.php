@@ -7,8 +7,11 @@ namespace Surqlize\Model;
 use ReflectionClass;
 use ReflectionProperty;
 use Surqlize\Attributes\Cast;
+use Surqlize\Attributes\Geometry;
 use Surqlize\Attributes\Id;
 use Surqlize\Attributes\Schema;
+use Surqlize\Attributes\Search;
+use Surqlize\Attributes\Vector;
 use Surqlize\Model\Exception\MissingTableAttributeException;
 use Surqlize\Query\Support\Exception\MissingTableNameAttributeException;
 use Surqlize\Query\Support\TableNameResolver;
@@ -26,6 +29,7 @@ final class ModelMetadata
      * @param list<string> $properties
 	 * @param array<string, true> $propertyLookup
 	 * @param array<string, string|null> $propertyTypes
+     * @param array<string, 'search'|'vector'|'geometry'> $propertyFieldKinds
      */
     private function __construct(
         public readonly string $class,
@@ -36,6 +40,7 @@ final class ModelMetadata
         public readonly array $properties,
 		public readonly array $propertyLookup,
 		public readonly array $propertyTypes,
+        public readonly array $propertyFieldKinds,
     ) {}
 
     /**
@@ -68,6 +73,7 @@ final class ModelMetadata
         $properties = [];
 		$propertyLookup = [];
 		$propertyTypes = [];
+        $propertyFieldKinds = [];
 
         foreach ($reflection->getProperties(ReflectionProperty::IS_PUBLIC) as $property) {
             if ($property->isStatic()) {
@@ -104,6 +110,18 @@ final class ModelMetadata
                 $cast = $attribute->newInstance();
                 $casts[$name] = ClassString::model($cast->class, sprintf('Cast target for %s::$%s', $class, $name));
             }
+
+            if ($property->getAttributes(Search::class) !== []) {
+                $propertyFieldKinds[$name] = 'search';
+            }
+
+            if ($property->getAttributes(Vector::class) !== []) {
+                $propertyFieldKinds[$name] = 'vector';
+            }
+
+            if ($property->getAttributes(Geometry::class) !== []) {
+                $propertyFieldKinds[$name] = 'geometry';
+            }
         }
 
         $metadata = new self(
@@ -115,6 +133,7 @@ final class ModelMetadata
             properties: $properties,
 			propertyLookup: $propertyLookup,
 			propertyTypes: $propertyTypes,
+            propertyFieldKinds: $propertyFieldKinds,
         );
 
         ModelRegistry::register($metadata);
