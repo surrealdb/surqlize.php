@@ -48,7 +48,7 @@ jobs:
       - name: Checkout SurrealDB PHP SDK
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
-          repository: surrealdb-dev/surrealdb.php
+          repository: surrealdb/surrealdb.php
           ref: main
           path: surrealdb.php-refined
 
