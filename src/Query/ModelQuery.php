@@ -263,7 +263,6 @@ final class ModelQuery implements CompilesQueries
     }
 
     /**
-     * @deprecated Passing string field names is kept for migration only. Prefer typed callbacks.
      *
      * @phpstan-param Closure(TFields): (\Surqlize\Query\Ast\WherePredicate|list<\Surqlize\Query\Ast\WherePredicate>)|string $field
      *
