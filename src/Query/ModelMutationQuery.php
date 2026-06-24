@@ -269,7 +269,7 @@ final class ModelMutationQuery implements CompilesQueries
 
     public function execute(): mixed
     {
-        return $this->resolveExecutor()->query($this->toBoundQuery());
+        return QueryResult::singleStatement($this->resolveExecutor()->query($this->toBoundQuery()));
     }
 
     /**

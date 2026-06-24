@@ -74,6 +74,40 @@ final class OrmRoadmapFeatureTest extends TestCase
         $this->assertSame('Main', $model->address->street);
     }
 
+    public function test_collect_models_hydrates_sdk_single_statement_result_envelope(): void
+    {
+        $executor = new CapturingExecutor([
+            [
+                [
+                    'id' => 'roadmap_user:beau',
+                    'name' => 'beau',
+                    'address' => [
+                        'id' => 'roadmap_address:home',
+                        'street' => 'Main',
+                    ],
+                ],
+                [
+                    'id' => 'roadmap_user:tobie',
+                    'name' => 'tobie',
+                    'address' => [
+                        'id' => 'roadmap_address:office',
+                        'street' => 'Second',
+                    ],
+                ],
+            ],
+        ]);
+
+        $models = RoadmapUser::select(['*'])
+            ->withExecutor($executor)
+            ->collectModels();
+
+        $this->assertCount(2, $models);
+        $this->assertInstanceOf(RoadmapUser::class, $models[0]);
+        $this->assertInstanceOf(RoadmapUser::class, $models[1]);
+        $this->assertSame('beau', $models[0]->toArray()['name'] ?? null);
+        $this->assertSame('tobie', $models[1]->toArray()['name'] ?? null);
+    }
+
     public function test_model_create_query_compiles_and_executes_with_bindings(): void
     {
         $executor = new CapturingExecutor([
@@ -90,6 +124,21 @@ final class OrmRoadmapFeatureTest extends TestCase
         $this->assertInstanceOf(User::class, $model);
         $this->assertSame('CREATE user:beau CONTENT $bind_0 RETURN AFTER', $executor->queries[0]->query);
         $this->assertSame(['name' => 'beau', 'age' => 27], $executor->queries[0]->bindings['bind_0']);
+    }
+
+    public function test_model_create_hydrates_sdk_single_statement_result_envelope(): void
+    {
+        $executor = new CapturingExecutor([
+            [
+                ['id' => 'user:beau', 'name' => 'beau', 'age' => 27],
+            ],
+        ]);
+
+        $model = User::createQuery(['name' => 'beau', 'age' => 27], 'beau', $executor)->firstModel();
+
+        $this->assertInstanceOf(User::class, $model);
+        $this->assertSame('beau', $model->name);
+        $this->assertSame(27, $model->age);
     }
 
     public function test_schema_rules_validate_before_persisting(): void

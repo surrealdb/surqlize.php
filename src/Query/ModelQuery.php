@@ -490,7 +490,7 @@ final class ModelQuery implements CompilesQueries
     {
         $executor = $this->resolveExecutor();
         $query = $this->toBoundQuery();
-        $result = $executor->query($query);
+        $result = QueryResult::singleStatement($executor->query($query));
 
         if ($this->ast->isSelectValue()) {
             return $result;
