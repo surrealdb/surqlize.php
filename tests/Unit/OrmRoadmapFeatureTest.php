@@ -53,10 +53,10 @@ final class OrmRoadmapFeatureTest extends TestCase
     {
         $executor = new CapturingExecutor([
             [
-                'id' => 'roadmap_user:beau',
+                'id' => RecordId::from('roadmap_user', 'beau'),
                 'name' => 'beau',
                 'address' => [
-                    'id' => 'roadmap_address:home',
+                    'id' => RecordId::from('roadmap_address', 'home'),
                     'street' => 'Main',
                 ],
             ],
@@ -79,18 +79,18 @@ final class OrmRoadmapFeatureTest extends TestCase
         $executor = new CapturingExecutor([
             [
                 [
-                    'id' => 'roadmap_user:beau',
+                    'id' => RecordId::from('roadmap_user', 'beau'),
                     'name' => 'beau',
                     'address' => [
-                        'id' => 'roadmap_address:home',
+                        'id' => RecordId::from('roadmap_address', 'home'),
                         'street' => 'Main',
                     ],
                 ],
                 [
-                    'id' => 'roadmap_user:tobie',
+                    'id' => RecordId::from('roadmap_user', 'tobie'),
                     'name' => 'tobie',
                     'address' => [
-                        'id' => 'roadmap_address:office',
+                        'id' => RecordId::from('roadmap_address', 'office'),
                         'street' => 'Second',
                     ],
                 ],
@@ -111,7 +111,7 @@ final class OrmRoadmapFeatureTest extends TestCase
     public function test_model_create_query_compiles_and_executes_with_bindings(): void
     {
         $executor = new CapturingExecutor([
-            ['id' => 'user:beau', 'name' => 'beau', 'age' => 27],
+            ['id' => RecordId::from('user', 'beau'), 'name' => 'beau', 'age' => 27],
         ]);
 
         $query = User::createQuery(['name' => 'beau', 'age' => 27], 'beau', $executor);
@@ -130,7 +130,7 @@ final class OrmRoadmapFeatureTest extends TestCase
     {
         $executor = new CapturingExecutor([
             [
-                ['id' => 'user:beau', 'name' => 'beau', 'age' => 27],
+                ['id' => RecordId::from('user', 'beau'), 'name' => 'beau', 'age' => 27],
             ],
         ]);
 
@@ -182,7 +182,7 @@ final class OrmRoadmapFeatureTest extends TestCase
     public function test_model_find_count_exists_and_refresh_use_model_scoped_queries(): void
     {
         $findExecutor = new CapturingExecutor([
-            ['id' => 'user:beau', 'name' => 'beau', 'age' => 27],
+            ['id' => RecordId::from('user', 'beau'), 'name' => 'beau', 'age' => 27],
         ]);
 
         $user = User::find('beau', $findExecutor);
@@ -194,7 +194,7 @@ final class OrmRoadmapFeatureTest extends TestCase
         $this->assertSame(2, User::count(fn ($user) => $user->field('age')->gte(18), $countExecutor));
         $this->assertSame('SELECT count() AS count FROM user WHERE age >= $bind_0 GROUP ALL', $countExecutor->queries[0]->query);
 
-        $existsExecutor = new CapturingExecutor([['id' => 'user:beau']]);
+        $existsExecutor = new CapturingExecutor([['id' => RecordId::from('user', 'beau')]]);
         $this->assertTrue(User::exists(fn ($user) => $user->field('name')->eq('beau'), $existsExecutor));
         $this->assertSame('SELECT id FROM user WHERE name = $bind_0 LIMIT 1', $existsExecutor->queries[0]->query);
     }
