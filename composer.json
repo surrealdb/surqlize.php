@@ -1,11 +1,11 @@
 {
-    "name": "surqlize/surqlize",
+    "name": "surrealdb/surqlize",
     "description": "SurrealDB ORM for PHP — attribute-driven models, edges, and query builder.",
     "type": "library",
     "license": "MIT",
     "require": {
         "php": ">=8.4",
-        "surrealdb/surrealdb.php": "2.0.0-alpha.0@alpha"
+        "surrealdb/surrealdb.php": "2.0.0-alpha.1"
     },
     "require-dev": {
         "phpstan/phpstan": "^2.0",
