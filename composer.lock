@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "24da62c90b5c046ef0da1065ab6a79d8",
+    "content-hash": "97333c8f1ca6dbdbf2fe14f118a30d5b",
     "packages": [
         {
             "name": "brick/math",
@@ -2483,7 +2483,9 @@
     ],
     "aliases": [],
     "minimum-stability": "dev",
-    "stability-flags": {},
+    "stability-flags": {
+        "surrealdb/surrealdb.php": 15
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
