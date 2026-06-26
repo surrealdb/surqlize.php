@@ -5,7 +5,7 @@
 # Last matching rule wins; put broad defaults first, tighten with paths below.
 
 # Default owners for the repository
-* @surrealdb/surrealdb
+* @surrealdb/devex
 
 # Configuration for CI
 /.github/ @surrealdb/ci
