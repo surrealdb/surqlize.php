@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "333a5565c0918755aa6588b361c98b80",
+    "content-hash": "dc992068d8864a1ac319be2b5986c34e",
     "packages": [
         {
             "name": "brick/math",
@@ -327,16 +327,16 @@
         },
         {
             "name": "surrealdb/surrealdb.php",
-            "version": "v2.0.0-alpha.0",
+            "version": "2.0.0-alpha.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/surrealdb/surrealdb.php.git",
-                "reference": "ca088516b48122d51437634932af2da3eadb8a4d"
+                "reference": "712c53d13bd95bf91ea4745e79c9e109c201c27e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/surrealdb/surrealdb.php/zipball/ca088516b48122d51437634932af2da3eadb8a4d",
-                "reference": "ca088516b48122d51437634932af2da3eadb8a4d",
+                "url": "https://api.github.com/repos/surrealdb/surrealdb.php/zipball/712c53d13bd95bf91ea4745e79c9e109c201c27e",
+                "reference": "712c53d13bd95bf91ea4745e79c9e109c201c27e",
                 "shasum": ""
             },
             "require": {
@@ -413,10 +413,10 @@
                 "websocket"
             ],
             "support": {
-                "source": "https://github.com/surrealdb/surrealdb.php/tree/v2.0.0-alpha.0",
+                "source": "https://github.com/surrealdb/surrealdb.php/tree/v2.0.0-alpha.1",
                 "issues": "https://github.com/surrealdb/surrealdb.php/issues"
             },
-            "time": "2026-06-23T17:14:29+00:00"
+            "time": "2026-06-26T11:00:02+00:00"
         },
         {
             "name": "symfony/polyfill-uuid",
@@ -2483,9 +2483,7 @@
     ],
     "aliases": [],
     "minimum-stability": "dev",
-    "stability-flags": {
-        "surrealdb/surrealdb.php": 15
-    },
+    "stability-flags": {},
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
