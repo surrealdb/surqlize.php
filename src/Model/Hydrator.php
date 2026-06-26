@@ -142,10 +142,6 @@ final class Hydrator
 			return $value;
 		}
 
-		if (is_string($value)) {
-			return RecordId::parse($value);
-		}
-
 		if (is_array($value) && isset($value["table"], $value["id"])) {
 			return new RecordId($value["table"], $value["id"]);
 		}
@@ -181,10 +177,6 @@ final class Hydrator
 
 		if ($value instanceof RecordId) {
 			return $value;
-		}
-
-		if (is_string($value)) {
-			return RecordId::parse($value);
 		}
 
 		if (!is_array($value)) {

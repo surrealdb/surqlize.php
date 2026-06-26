@@ -144,11 +144,11 @@ final class MemoryFootprintRunner
                 function (int $iterations): void {
                     $hydrator = new Hydrator();
                     $row = [
-                        'id' => 'user:beau',
+                        'id' => RecordId::from('user', 'beau'),
                         'name' => 'beau',
                         'age' => 27,
                         'address' => [
-                            'id' => 'address:a1',
+                            'id' => RecordId::from('address', 'a1'),
                             'street' => 'Some Street',
                             'number' => 42,
                             'postcode' => '2940LD',
@@ -169,12 +169,12 @@ final class MemoryFootprintRunner
 
 					for ($index = 0; $index < 10; $index++) {
 						$rows[] = [
-							'id' => 'user:beau_' . $index,
+							'id' => RecordId::from('user', 'beau_' . $index),
 							'name' => 'beau',
 							'age' => 27,
 							'unknown' => 'ignored',
 							'address' => [
-								'id' => 'address:a' . $index,
+								'id' => RecordId::from('address', 'a' . $index),
 								'street' => 'Some Street',
 								'number' => 42,
 								'postcode' => '2940LD',

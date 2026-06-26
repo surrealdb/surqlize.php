@@ -46,7 +46,7 @@ final class PerformanceOptimizationTest extends TestCase
 	public function test_hydrator_ignores_unknown_keys_with_property_lookup(): void
 	{
 		$model = (new Hydrator())->hydrate(User::class, [
-			'id' => 'user:beau',
+			'id' => RecordId::from('user', 'beau'),
 			'name' => 'beau',
 			'age' => 27,
 			'unknown' => 'ignored',
@@ -93,7 +93,7 @@ final class PerformanceOptimizationTest extends TestCase
 	public function test_lazy_models_hydrates_models_without_materializing_model_list(): void
 	{
 		$executor = new PerformanceCapturingExecutor([
-			['id' => 'user:beau', 'name' => 'beau', 'age' => 27],
+			['id' => RecordId::from('user', 'beau'), 'name' => 'beau', 'age' => 27],
 		]);
 
 		$models = iterator_to_array(
@@ -110,7 +110,7 @@ final class PerformanceOptimizationTest extends TestCase
 	public function test_mutation_first_model_hydrates_only_first_returned_row(): void
 	{
 		$executor = new PerformanceCapturingExecutor([
-			['id' => 'user:first', 'name' => 'first', 'age' => 1],
+			['id' => RecordId::from('user', 'first'), 'name' => 'first', 'age' => 1],
 			['id' => new \stdClass()],
 		]);
 
