@@ -2,7 +2,7 @@
     "name": "surrealdb/surqlize",
     "description": "SurrealDB ORM for PHP — attribute-driven models, edges, and query builder.",
     "type": "library",
-	"version": "1.0.0-alpha.1",
+	"version": "0.0.1-alpha.1",
     "license": "MIT",
     "require": {
         "php": ">=8.4",
